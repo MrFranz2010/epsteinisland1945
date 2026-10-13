@@ -44750,7 +44750,7 @@ var KT, qT, YT, XT, ZT, JT, $T, eC, tC, nC, iC, rC, aC, sC, oC, lC, cC, hC, dC, 
                                                 const t = e;
                                                 if (null !== t && "number" != typeof t)
                                                     return void l(new Error("UploadId is not a number or null"));
-                                                if (!Number.isSafeInteger(t))
+                                                if (null !== t && !Number.isSafeInteger(t))
                                                     return void l(new Error("UploadId is not a safe integer"));
                                                 o({
                                                     uploadId: t,
@@ -44766,21 +44766,21 @@ var KT, qT, YT, XT, ZT, JT, $T, eC, tC, nC, iC, rC, aC, sC, oC, lC, cC, hC, dC, 
                                                 const t = e.uploadId;
                                                 if (null !== t && "number" != typeof t)
                                                     return void l(new Error("UploadId is not a number or null"));
-                                                if (!Number.isSafeInteger(t))
+                                                if (null !== t && !Number.isSafeInteger(t))
                                                     return void l(new Error("UploadId is not a safe integer"));
                                                 if (!("previousPosition"in e))
                                                     return void l(new Error('Field "previousPosition" does not exist'));
                                                 if ("number" != typeof e.previousPosition && null !== e.previousPosition)
                                                     return void l(new Error('Field "previousPosition" is not a number or null'));
                                                 const n = e.previousPosition;
-                                                if ("number" != typeof n || !Number.isSafeInteger(n) || n < 0)
+                                                if (null !== n && ("number" != typeof n || !Number.isSafeInteger(n) || n < 0))
                                                     return void l(new Error("PreviousPosition is not a safe positive integer"));
                                                 if (!("newPosition"in e))
                                                     return void l(new Error('Field "newPosition" does not exist'));
                                                 if ("number" != typeof e.newPosition && null !== e.newPosition)
                                                     return void l(new Error('Field "newPosition" is not a number or null'));
                                                 const i = e.newPosition;
-                                                if ("number" != typeof i || !Number.isSafeInteger(i) || i < 0)
+                                                if (null !== i && ("number" != typeof i || !Number.isSafeInteger(i) || i < 0))
                                                     return void l(new Error("NewPosition is not a safe positive integer"));
                                                 o({
                                                     uploadId: t,

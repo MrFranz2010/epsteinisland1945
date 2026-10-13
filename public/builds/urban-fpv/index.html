@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Urban FPV Drone Simulator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      overflow: hidden;
+      background: #000;
+      user-select: none;
+    }
+
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* 着陆页面 */
+    #landing-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(20,30,50,0.9) 100%);
+      transition: opacity 1.5s, visibility 1.5s;
+    }
+
+    #landing-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .landing-content {
+      text-align: center;
+      backdrop-filter: blur(20px);
+      background: rgba(10, 20, 40, 0.6);
+      border: 1px solid rgba(0, 200, 255, 0.3);
+      border-radius: 24px;
+      padding: 60px 80px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(0, 150, 255, 0.2);
+    }
+
+    .landing-content h1 {
+      font-size: 48px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      background: linear-gradient(135deg, #00ccff, #0066ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+      text-shadow: 0 0 30px rgba(0, 150, 255, 0.5);
+    }
+
+    .landing-content h2 {
+      font-size: 20px;
+      color: rgba(200, 220, 255, 0.8);
+      letter-spacing: 8px;
+      margin-bottom: 40px;
+      font-weight: 300;
+    }
+
+    #start-button {
+      padding: 16px 48px;
+      font-size: 18px;
+      font-family: inherit;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, rgba(0, 200, 255, 0.2), rgba(0, 100, 255, 0.3));
+      border: 1px solid rgba(0, 200, 255, 0.6);
+      color: #fff;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s;
+      backdrop-filter: blur(10px);
+      text-transform: uppercase;
+    }
+
+    #start-button:hover {
+      background: linear-gradient(135deg, rgba(0, 200, 255, 0.4), rgba(0, 100, 255, 0.5));
+      border-color: rgba(0, 220, 255, 0.9);
+      box-shadow: 0 0 30px rgba(0, 150, 255, 0.5);
+      transform: scale(1.05);
+    }
+
+    /* HUD覆盖层 */
+    #hud {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+
+    #hud.visible {
+      opacity: 1;
+    }
+
+    .hud-panel {
+      backdrop-filter: blur(10px);
+      background: rgba(10, 20, 40, 0.5);
+      border: 1px solid rgba(0, 200, 255, 0.3);
+      border-radius: 12px;
+      padding: 12px 18px;
+      color: #fff;
+      font-size: 13px;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .hud-label {
+      color: rgba(0, 200, 255, 0.8);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+
+    .hud-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(0, 200, 255, 0.5);
+    }
+
+    #top-left {
+      position: absolute;
+      top: 30px;
+      left: 30px;
+      display: flex;
+      gap: 20px;
+    }
+
+    #top-right {
+      position: absolute;
+      top: 30px;
+      right: 30px;
+      display: flex;
+      gap: 20px;
+    }
+
+    #bottom-center {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    #horizon-indicator {
+      width: 200px;
+      height: 80px;
+      border: 1px solid rgba(0, 200, 255, 0.4);
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    #horizon-line {
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background: rgba(0, 255, 100, 0.8);
+      top: 50%;
+      transition: transform 0.1s;
+      box-shadow: 0 0 8px rgba(0, 255, 100, 0.6);
+    }
+
+    #minimap {
+      position: absolute;
+      bottom: 30px;
+      right: 30px;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      border: 2px solid rgba(0, 200, 255, 0.5);
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0, 100, 255, 0.3);
+    }
+
+    #minimap canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+    }
+
+    /* 碰撞警告 */
+    #warning-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 99;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.1s;
+    }
+
+    #warning-overlay.active {
+      opacity: 1;
+      animation: warningFlash 0.5s ease-out;
+    }
+
+    #warning-text {
+      font-size: 48px;
+      font-weight: 900;
+      color: #ff0000;
+      letter-spacing: 8px;
+      text-shadow: 0 0 30px rgba(255, 0, 0, 0.8);
+    }
+
+    @keyframes warningFlash {
+      0% { opacity: 0; transform: scale(0.8); }
+      20% { opacity: 1; transform: scale(1.1); }
+      100% { opacity: 0; transform: scale(1); }
+    }
+
+    #controls-help {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(900px, 92vw);
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 11px;
+      line-height: 1.5;
+      z-index: 101;
+      pointer-events: none;
+      text-align: center;
+      transition: opacity 1s;
+    }
+
+    @media (max-width: 600px) {
+      #top-left,
+      #top-right {
+        left: 6px;
+        right: 6px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+      }
+
+      #top-left { top: 8px; }
+      #top-right { top: 48px; }
+
+      .hud-panel {
+        min-width: 0;
+        padding: 4px 5px;
+        border-radius: 6px;
+        text-align: center;
+        font-size: 10px;
+        letter-spacing: 0;
+      }
+
+      .hud-label {
+        margin-bottom: 2px;
+        font-size: 7px;
+        letter-spacing: 0;
+      }
+
+      .hud-value {
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      #horizon-indicator {
+        width: 120px;
+        height: 45px;
+      }
+
+      #minimap {
+        right: 8px;
+        bottom: 8px;
+        width: 72px;
+        height: 72px;
+        border-width: 1px;
+      }
+
+      #controls-help {
+        left: 8px;
+        bottom: 8px;
+        width: calc(100% - 96px);
+        transform: none;
+        font-size: 7px;
+        line-height: 1.3;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <div id="landing-screen">
+    <div class="landing-content">
+      <h1>URBAN FPV</h1>
+      <h2>SIMULATORE FPV</h2>
+      <button id="start-button">INIZIA IL VOLO</button>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="top-left">
+      <div class="hud-panel">
+        <div class="hud-label">Batteria</div>
+        <div class="hud-value" id="battery">85%</div>
+      </div>
+      <div class="hud-panel">
+        <div class="hud-label">Tempo di volo</div>
+        <div class="hud-value" id="flight-time">00:00</div>
+      </div>
+      <div class="hud-panel">
+        <div class="hud-label">Velocità</div>
+        <div class="hud-value" id="speed">0.0 m/s</div>
+      </div>
+    </div>
+    <div id="top-right">
+      <div class="hud-panel">
+        <div class="hud-label">Quota</div>
+        <div class="hud-value" id="altitude">50 m</div>
+      </div>
+      <div class="hud-panel">
+        <div class="hud-label">Distanza</div>
+        <div class="hud-value" id="distance">0.00 km</div>
+      </div>
+      <div class="hud-panel">
+        <div class="hud-label">Collisioni</div>
+        <div class="hud-value" id="collisions">0</div>
+      </div>
+    </div>
+    <div id="bottom-center">
+      <div id="horizon-indicator">
+        <div id="horizon-line"></div>
+      </div>
+    </div>
+    <div id="minimap">
+      <canvas id="minimap-canvas" width="180" height="180"></canvas>
+    </div>
+  </div>
+
+  <div id="warning-overlay">
+    <div id="warning-text">⚠ URTO</div>
+  </div>
+
+  <div id="controls-help">
+    Controller acro: stick sinistro imbardata/throttle, destro rollio/beccheggio · Tastiera: WASD/QE · Mouse: visuale · V: cambia camera
+  </div>
+
+  <!-- 脚本 -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    
+    // ============ 全局状态 ============
+    const state = {
+      gameStarted: false,
+      cameraMode: 0, // 0=FPV, 1=Chase, 2=Cinematic Orbit
+      dronePosition: new THREE.Vector3(0, 50, 0),
+      droneVelocity: new THREE.Vector3(),
+      droneRotation: new THREE.Euler(0, 0, 0),
+      throttle: 0,
+      speed: 0,
+      altitude: 50,
+      distanceTraveled: 0,
+      collisionCount: 0,
+      batteryLevel: 85,
+      flightTime: 0,
+      lastPosition: new THREE.Vector3(),
+      collisions: new Set(),
+      keys: {},
+      mouse: { x: 0, y: 0 },
+      isPointerLocked: false,
+      cameraTargetPosition: new THREE.Vector3(30, 60, 50),
+      cameraTargetLookAt: new THREE.Vector3(0, 40, 0),
+    };
+
+    // ============ 场景初始化 ============
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x87CEEB, 0.00015);
+    scene.background = new THREE.Color(0x87CEEB);
+
+    // 相机
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 800);
+    camera.position.set(30, 60, 50);
+    camera.lookAt(0, 40, 0);
+
+    // 渲染器
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: true,
+      powerPreference: 'high-performance'
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    container.appendChild(renderer.domElement);
+
+    // ============ 光照 ============
+    const ambientLight = new THREE.AmbientLight(0x404060, 1.5);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xfff5e6, 8);
+    sunLight.position.set(100, 150, 50);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 500;
+    sunLight.shadow.camera.left = -100;
+    sunLight.shadow.camera.right = 100;
+    sunLight.shadow.camera.top = 100;
+    sunLight.shadow.camera.bottom = -100;
+    sunLight.shadow.bias = -0.0001;
+    scene.add(sunLight);
+
+    const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x444444, 1);
+    scene.add(hemisphereLight);
+
+    // ============ 地面 ============
+    const groundGeometry = new THREE.PlaneGeometry(400, 400);
+    const groundMaterial = new THREE.MeshStandardMaterial({ 
+      color: 0x333333,
+      roughness: 0.9,
+      metalness: 0.1
+    });
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // 道路网格
+    const roadGrid = new THREE.Group();
+    for (let x = -180; x <= 180; x += 40) {
+      const roadGeom = new THREE.PlaneGeometry(8, 400);
+      const roadMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.7 });
+      const road = new THREE.Mesh(roadGeom, roadMat);
+      road.rotation.x = -Math.PI / 2;
+      road.position.set(x, 0.01, 0);
+      road.receiveShadow = true;
+      roadGrid.add(road);
+    }
+    for (let z = -180; z <= 180; z += 40) {
+      const roadGeom = new THREE.PlaneGeometry(400, 8);
+      const roadMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.7 });
+      const road = new THREE.Mesh(roadGeom, roadMat);
+      road.rotation.x = -Math.PI / 2;
+      road.position.set(0, 0.01, z);
+      road.receiveShadow = true;
+      roadGrid.add(road);
+    }
+    scene.add(roadGrid);
+
+    // ============ 城市建筑 ============
+    const buildings = [];
+    const buildingColliders = [];
+    const buildingMaterials = [
+      new THREE.MeshStandardMaterial({ color: 0x8899aa, roughness: 0.4, metalness: 0.6 }),
+      new THREE.MeshStandardMaterial({ color: 0xccbbaa, roughness: 0.7, metalness: 0.2 }),
+      new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.3, metalness: 0.8 }),
+      new THREE.MeshStandardMaterial({ color: 0xaa9988, roughness: 0.8, metalness: 0.1 }),
+    ];
+
+    function createBuilding(x, z, width, depth, height, materialIndex) {
+      const group = new THREE.Group();
+      
+      const bodyGeom = new THREE.BoxGeometry(width, height, depth);
+      const body = new THREE.Mesh(bodyGeom, buildingMaterials[materialIndex]);
+      body.position.y = height / 2;
+      body.castShadow = true;
+      body.receiveShadow = true;
+      group.add(body);
+
+      if (materialIndex === 0) {
+        const windowSize = 2;
+        const windowSpacing = 4;
+        const floorsCount = Math.floor(height / windowSpacing);
+        for (let floor = 0; floor < floorsCount; floor++) {
+          for (let wx = -width/2 + 2; wx < width/2; wx += windowSpacing) {
+            for (let wz = -depth/2 + 2; wz < depth/2; wz += windowSpacing) {
+              const windowGeom = new THREE.PlaneGeometry(windowSize * 0.6, windowSize * 0.8);
+              const windowMat = new THREE.MeshStandardMaterial({ 
+                color: 0x88ccff, 
+                roughness: 0.2, 
+                metalness: 0.8,
+                emissive: 0x112233,
+                emissiveIntensity: 0.3
+              });
+              const win = new THREE.Mesh(windowGeom, windowMat);
+              win.position.set(wx, floor * windowSpacing + windowSpacing/2, depth/2 + 0.01);
+              group.add(win);
+              
+              const win2 = new THREE.Mesh(windowGeom, windowMat);
+              win2.position.set(wx, floor * windowSpacing + windowSpacing/2, -depth/2 - 0.01);
+              win2.rotation.y = Math.PI;
+              group.add(win2);
+            }
+          }
+        }
+      }
+
+      if (Math.random() > 0.3) {
+        const hvacGeom = new THREE.BoxGeometry(width * 0.3, 2, depth * 0.3);
+        const hvac = new THREE.Mesh(hvacGeom, new THREE.MeshStandardMaterial({ 
+          color: 0x888888, roughness: 0.5, metalness: 0.7 
+        }));
+        hvac.position.y = height + 1;
+        hvac.castShadow = true;
+        group.add(hvac);
+      }
+
+      group.position.set(x, 0, z);
+      scene.add(group);
+      
+      const collider = new THREE.Box3(
+        new THREE.Vector3(x - width/2, 0, z - depth/2),
+        new THREE.Vector3(x + width/2, height + 3, z + depth/2)
+      );
+      
+      buildings.push({ group, x, z, width, depth, height, collider });
+      buildingColliders.push(collider);
+      return group;
+    }
+
+    const citySize = 7;
+    const blockSize = 35;
+    for (let ix = -citySize; ix <= citySize; ix++) {
+      for (let iz = -citySize; iz <= citySize; iz++) {
+        if (Math.random() > 0.25) {
+          const x = ix * blockSize + (Math.random() - 0.5) * 10;
+          const z = iz * blockSize + (Math.random() - 0.5) * 10;
+          const width = 8 + Math.random() * 15;
+          const depth = 8 + Math.random() * 15;
+          const height = 15 + Math.random() * 80;
+          const matIndex = Math.floor(Math.random() * 4);
+          createBuilding(x, z, width, depth, height, matIndex);
+        }
+      }
+    }
+
+    // 添加树木
+    for (let i = 0; i < 200; i++) {
+      const treeGroup = new THREE.Group();
+      const trunkGeom = new THREE.CylinderGeometry(0.3, 0.4, 4);
+      const trunk = new THREE.Mesh(trunkGeom, new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.9 }));
+      trunk.position.y = 2;
+      trunk.castShadow = true;
+      treeGroup.add(trunk);
+      
+      const crownGeom = new THREE.SphereGeometry(2, 8, 6);
+      const crown = new THREE.Mesh(crownGeom, new THREE.MeshStandardMaterial({ color: 0x228B22, roughness: 0.8 }));
+      crown.position.y = 5;
+      crown.castShadow = true;
+      treeGroup.add(crown);
+      
+      treeGroup.position.set(
+        (Math.random() - 0.5) * 350,
+        0,
+        (Math.random() - 0.5) * 350
+      );
+      scene.add(treeGroup);
+      buildingColliders.push(new THREE.Box3(
+        new THREE.Vector3(treeGroup.position.x - 1, 0, treeGroup.position.z - 1),
+        new THREE.Vector3(treeGroup.position.x + 1, 7, treeGroup.position.z + 1)
+      ));
+    }
+
+    // 路灯
+    for (let x = -180; x <= 180; x += 20) {
+      for (let z = -180; z <= 180; z += 20) {
+        if (Math.random() > 0.7) {
+          const poleGeom = new THREE.CylinderGeometry(0.2, 0.3, 10);
+          const pole = new THREE.Mesh(poleGeom, new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.8 }));
+          pole.position.set(x + (Math.random()-0.5)*5, 5, z + (Math.random()-0.5)*5);
+          pole.castShadow = true;
+          scene.add(pole);
+          
+          const lightGeom = new THREE.SphereGeometry(0.5);
+          const light = new THREE.Mesh(lightGeom, new THREE.MeshStandardMaterial({ 
+            color: 0xffff88, emissive: 0xffff44, emissiveIntensity: 0.5 
+          }));
+          light.position.copy(pole.position);
+          light.position.y = 10.5;
+          scene.add(light);
+        }
+      }
+    }
+
+    // ============ 无人机模型 ============
+    const drone = new THREE.Group();
+    
+    const bodyGeom = new THREE.BoxGeometry(1.2, 0.3, 0.8);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.3, metalness: 0.9 });
+    const droneBody = new THREE.Mesh(bodyGeom, bodyMat);
+    droneBody.castShadow = true;
+    drone.add(droneBody);
+
+    for (let i = 0; i < 4; i++) {
+      const angle = (i * Math.PI / 2) + Math.PI / 4;
+      const armGeom = new THREE.CylinderGeometry(0.08, 0.08, 2.5);
+      const arm = new THREE.Mesh(armGeom, bodyMat);
+      arm.position.set(Math.cos(angle) * 1.2, -0.1, Math.sin(angle) * 1.2);
+      arm.rotation.z = Math.PI / 2;
+      arm.rotation.y = angle;
+      arm.castShadow = true;
+      drone.add(arm);
+    }
+
+    const propellers = [];
+    for (let i = 0; i < 4; i++) {
+      const angle = (i * Math.PI / 2) + Math.PI / 4;
+      const propGroup = new THREE.Group();
+      const propGeom = new THREE.BoxGeometry(2.5, 0.03, 0.2);
+      const propMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.4, metalness: 0.8 });
+      const prop = new THREE.Mesh(propGeom, propMat);
+      prop.castShadow = true;
+      propGroup.add(prop);
+      propGroup.position.set(Math.cos(angle) * 1.2, 0.15, Math.sin(angle) * 1.2);
+      drone.add(propGroup);
+      propellers.push(propGroup);
+    }
+
+    const ledColors = [0xff0000, 0x00ff00, 0xff0000, 0x00ff00];
+    for (let i = 0; i < 4; i++) {
+      const angle = (i * Math.PI / 2) + Math.PI / 4;
+      const ledGeom = new THREE.SphereGeometry(0.08);
+      const led = new THREE.Mesh(ledGeom, new THREE.MeshStandardMaterial({ 
+        color: ledColors[i], emissive: ledColors[i], emissiveIntensity: 0.8 
+      }));
+      led.position.set(Math.cos(angle) * 1.8, -0.05, Math.sin(angle) * 1.8);
+      drone.add(led);
+    }
+
+    const cameraGeom = new THREE.BoxGeometry(0.3, 0.2, 0.2);
+    const fpvCamera = new THREE.Mesh(cameraGeom, new THREE.MeshStandardMaterial({ 
+      color: 0x111111, roughness: 0.2, metalness: 0.9 
+    }));
+    fpvCamera.position.set(0, 0, 0.45);
+    drone.add(fpvCamera);
+    
+    const lensGeom = new THREE.CylinderGeometry(0.08, 0.08, 0.05);
+    const lens = new THREE.Mesh(lensGeom, new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.1 }));
+    lens.position.set(0, 0, 0.55);
+    lens.rotation.x = Math.PI/2;
+    drone.add(lens);
+
+    drone.position.copy(state.dronePosition);
+    scene.add(drone);
+
+    // ============ 云层 ============
+    const clouds = [];
+    for (let i = 0; i < 30; i++) {
+      const cloudGroup = new THREE.Group();
+      for (let j = 0; j < 4; j++) {
+        const cloudGeom = new THREE.SphereGeometry(3 + Math.random() * 5, 7, 5);
+        const cloud = new THREE.Mesh(cloudGeom, new THREE.MeshStandardMaterial({ 
+          color: 0xffffff, roughness: 1, transparent: true, opacity: 0.8 
+        }));
+        cloud.position.set((Math.random()-0.5)*8, (Math.random()-0.5)*3, (Math.random()-0.5)*8);
+        cloudGroup.add(cloud);
+      }
+      cloudGroup.position.set(
+        (Math.random() - 0.5) * 300,
+        80 + Math.random() * 60,
+        (Math.random() - 0.5) * 300
+      );
+      scene.add(cloudGroup);
+      clouds.push(cloudGroup);
+    }
+
+    // ============ 输入处理 ============
+    document.addEventListener('keydown', (e) => {
+      state.keys[e.key.toLowerCase()] = true;
+      if (e.key === ' ') {
+        e.preventDefault();
+      }
+    });
+    
+    document.addEventListener('keyup', (e) => {
+      state.keys[e.key.toLowerCase()] = false;
+    });
+    
+    // ===== 修复：反转鼠标平移的旋转方向 =====
+    document.addEventListener('mousemove', (e) => {
+      if (state.isPointerLocked && state.gameStarted) {
+        // movementX: 鼠标水平移动 → 控制无人机偏航
+        // 取反：鼠标向右移动 → 无人机向左旋转
+        state.mouse.x -= e.movementX * 0.002;
+        state.mouse.y -= e.movementY * 0.002;
+        state.mouse.y = Math.max(-Math.PI/4, Math.min(Math.PI/4, state.mouse.y));
+      }
+    });
+    
+    document.addEventListener('pointerlockchange', () => {
+      state.isPointerLocked = document.pointerLockElement === renderer.domElement;
+      if (!state.isPointerLocked) {
+        state.mouse.x = state.droneRotation.y;
+        state.mouse.y = state.droneRotation.x;
+      }
+    });
+    
+    document.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === 'v' && state.gameStarted) {
+        state.cameraMode = (state.cameraMode + 1) % 3;
+        console.log(`相机模式: ${['FPV', '追逐', '电影轨道'][state.cameraMode]}`);
+        
+        if (state.cameraMode === 0) {
+          renderer.domElement.requestPointerLock();
+        }
+        if (state.cameraMode === 2) {
+          document.exitPointerLock();
+        }
+      }
+    });
+
+    renderer.domElement.addEventListener('click', () => {
+      if (state.gameStarted && (state.cameraMode === 0 || state.cameraMode === 1)) {
+        renderer.domElement.requestPointerLock();
+      }
+    });
+
+    function readGamepadAxis(gamepad, axisIndex) {
+      const value = gamepad?.axes[axisIndex] ?? 0;
+      if (Math.abs(value) < 0.12) return 0;
+      return Math.sign(value) * (Math.abs(value) - 0.12) / 0.88;
+    }
+
+    // ============ 碰撞检测 ============
+    function checkCollisions() {
+      const droneBox = new THREE.Box3(
+        new THREE.Vector3(drone.position.x - 1, drone.position.y - 0.5, drone.position.z - 1),
+        new THREE.Vector3(drone.position.x + 1, drone.position.y + 0.5, drone.position.z + 1)
+      );
+
+      if (drone.position.y < 0.5) {
+        drone.position.y = 1;
+        state.droneVelocity.y = Math.abs(state.droneVelocity.y) * 0.5;
+        triggerCollisionWarning();
+        return;
+      }
+
+      for (const collider of buildingColliders) {
+        if (droneBox.intersectsBox(collider)) {
+          const collisionKey = `${collider.min.x},${collider.min.y},${collider.min.z}`;
+          if (!state.collisions.has(collisionKey)) {
+            state.collisions.add(collisionKey);
+            state.collisionCount++;
+            triggerCollisionWarning();
+            
+            const center = new THREE.Vector3(
+              (collider.min.x + collider.max.x) / 2,
+              (collider.min.y + collider.max.y) / 2,
+              (collider.min.z + collider.max.z) / 2
+            );
+            const bounceDir = drone.position.clone().sub(center).normalize();
+            bounceDir.y = 0;
+            state.droneVelocity.add(bounceDir.multiplyScalar(8));
+            state.droneVelocity.y += 3;
+            
+            setTimeout(() => state.collisions.delete(collisionKey), 1000);
+          }
+          return;
+        }
+      }
+    }
+
+    function triggerCollisionWarning() {
+      const warningOverlay = document.getElementById('warning-overlay');
+      warningOverlay.classList.add('active');
+      setTimeout(() => warningOverlay.classList.remove('active'), 500);
+      document.getElementById('collisions').textContent = state.collisionCount;
+    }
+
+    // ============ HUD更新 ============
+    function updateHUD() {
+      state.speed = state.droneVelocity.length();
+      state.altitude = drone.position.y;
+      state.distanceTraveled += state.droneVelocity.length() * 0.016;
+      
+      document.getElementById('speed').textContent = `${state.speed.toFixed(1)} m/s`;
+      document.getElementById('altitude').textContent = `${Math.round(state.altitude)} m`;
+      document.getElementById('distance').textContent = `${(state.distanceTraveled / 1000).toFixed(2)} km`;
+      document.getElementById('battery').textContent = `${Math.round(state.batteryLevel)}%`;
+      
+      state.flightTime += 0.016;
+      const mins = Math.floor(state.flightTime / 60);
+      const secs = Math.floor(state.flightTime % 60);
+      document.getElementById('flight-time').textContent = 
+        `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+      const horizonLine = document.getElementById('horizon-line');
+      const pitchPercent = (state.droneRotation.x / (Math.PI / 3)) * 40;
+      horizonLine.style.transform = `translateY(${pitchPercent}px)`;
+      
+      state.batteryLevel = Math.max(0, state.batteryLevel - 0.003);
+    }
+
+    // ============ 小地图 ============
+    function updateMinimap() {
+      const canvas = document.getElementById('minimap-canvas');
+      const ctx = canvas.getContext('2d');
+      const size = 180;
+      
+      ctx.clearRect(0, 0, size, size);
+      
+      ctx.fillStyle = '#111122';
+      ctx.beginPath();
+      ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+      ctx.clip();
+      
+      const scale = 0.35;
+      const offsetX = size/2 - drone.position.x * scale;
+      const offsetZ = size/2 - drone.position.z * scale;
+      
+      ctx.fillStyle = '#334455';
+      for (const b of buildings) {
+        const bx = b.x * scale + offsetX;
+        const bz = b.z * scale + offsetZ;
+        ctx.fillRect(bx - b.width*scale/2, bz - b.depth*scale/2, 
+                     b.width*scale, b.depth*scale);
+      }
+      
+      ctx.strokeStyle = '#555555';
+      ctx.lineWidth = 1;
+      for (let x = -180; x <= 180; x += 40) {
+        const rx = x * scale + offsetX;
+        ctx.beginPath();
+        ctx.moveTo(rx, -180*scale + offsetZ);
+        ctx.lineTo(rx, 180*scale + offsetZ);
+        ctx.stroke();
+      }
+      for (let z = -180; z <= 180; z += 40) {
+        const rz = z * scale + offsetZ;
+        ctx.beginPath();
+        ctx.moveTo(-180*scale + offsetX, rz);
+        ctx.lineTo(180*scale + offsetX, rz);
+        ctx.stroke();
+      }
+      
+      ctx.save();
+      ctx.translate(drone.position.x * scale + offsetX, drone.position.z * scale + offsetZ);
+      ctx.rotate(state.droneRotation.y);
+      ctx.fillStyle = '#00ccff';
+      ctx.beginPath();
+      ctx.moveTo(0, -6);
+      ctx.lineTo(-4, 4);
+      ctx.lineTo(4, 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(0, 0, 2, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+      
+      ctx.restore();
+      
+      ctx.strokeStyle = 'rgba(0, 200, 255, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(size/2, size/2, size/2 - 1, 0, Math.PI*2);
+      ctx.stroke();
+    }
+
+    // ============ 游戏循环 ============
+    const clock = new THREE.Clock();
+    let minimapUpdateTimer = 0;
+    
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      const delta = Math.min(clock.getDelta(), 0.1);
+      
+      if (state.gameStarted) {
+        const gamepads = navigator.getGamepads?.() ?? [];
+        const gamepad = Array.from(gamepads).find((connectedGamepad) => connectedGamepad?.connected);
+        const gamepadYaw = readGamepadAxis(gamepad, 0);
+        const gamepadThrottle = THREE.MathUtils.clamp((1 - readGamepadAxis(gamepad, 1)) / 2, 0, 1);
+        const gamepadPitch = -readGamepadAxis(gamepad, 3);
+        const gamepadRoll = -readGamepadAxis(gamepad, 2);
+        const force = new THREE.Vector3();
+        const droneForward = new THREE.Vector3(0, 0, 1).applyEuler(state.droneRotation);
+        const droneRight = new THREE.Vector3(1, 0, 0).applyEuler(state.droneRotation);
+        
+        const sensitivity = 15;
+        let altitudeInput = 0;
+        let forwardInput = 0;
+
+        if (gamepad) {
+          const orientation = new THREE.Quaternion().setFromEuler(state.droneRotation);
+          const yawRotation = new THREE.Quaternion().setFromAxisAngle(
+            new THREE.Vector3(0, 1, 0),
+            gamepadYaw * THREE.MathUtils.degToRad(420) * delta
+          );
+          const pitchRotation = new THREE.Quaternion().setFromAxisAngle(
+            new THREE.Vector3(1, 0, 0),
+            gamepadPitch * THREE.MathUtils.degToRad(500) * delta
+          );
+          const rollRotation = new THREE.Quaternion().setFromAxisAngle(
+            new THREE.Vector3(0, 0, 1),
+            gamepadRoll * THREE.MathUtils.degToRad(500) * delta
+          );
+          orientation.multiply(yawRotation).multiply(pitchRotation).multiply(rollRotation).normalize();
+          state.droneRotation.setFromQuaternion(orientation, 'YXZ');
+
+          const thrust = new THREE.Vector3(0, 1, 0).applyQuaternion(orientation);
+          force.add(thrust.multiplyScalar(gamepadThrottle * 19.62));
+          force.y -= 9.81;
+        } else {
+          forwardInput = THREE.MathUtils.clamp((state.keys['w'] ? 1 : 0) - (state.keys['s'] ? 0.7 : 0), -1, 1);
+          const strafeInput = (state.keys['a'] ? 1 : 0) - (state.keys['d'] ? 1 : 0);
+          altitudeInput = (state.keys[' '] ? 1 : 0) - (state.keys['shift'] ? 1 : 0);
+          force.add(droneForward.clone().multiplyScalar(sensitivity * forwardInput));
+          force.add(droneRight.clone().multiplyScalar(sensitivity * strafeInput));
+          force.y += sensitivity * 1.2 * altitudeInput;
+
+          const yawInput = (state.keys['q'] ? 1 : 0) - (state.keys['e'] ? 1 : 0);
+          state.droneRotation.y += yawInput * delta * 2.5;
+
+          if (state.isPointerLocked && (state.cameraMode === 0 || state.cameraMode === 1)) {
+            state.droneRotation.y = state.mouse.x;
+            state.droneRotation.x = state.mouse.y;
+          } else if (!state.isPointerLocked) {
+            state.mouse.x = state.droneRotation.y;
+            state.mouse.y = state.droneRotation.x;
+          }
+        }
+        
+        state.droneVelocity.add(force.clone().multiplyScalar(delta));
+        if (gamepad) {
+          state.droneVelocity.multiplyScalar(Math.exp(-0.18 * delta));
+        } else {
+          state.droneVelocity.multiplyScalar(0.95);
+          state.droneVelocity.y *= 0.98;
+          if (Math.abs(altitudeInput) < 0.01 && Math.abs(forwardInput) < 0.01 && Math.abs(state.droneVelocity.y) < 0.1) {
+            state.droneVelocity.y *= 0.9;
+          }
+        }
+        
+        drone.position.add(state.droneVelocity.clone().multiplyScalar(delta));
+        
+        drone.position.y = Math.max(1, Math.min(200, drone.position.y));
+        drone.position.x = Math.max(-190, Math.min(190, drone.position.x));
+        drone.position.z = Math.max(-190, Math.min(190, drone.position.z));
+        
+        if (gamepad) {
+          drone.rotation.copy(state.droneRotation);
+        } else {
+          const targetTiltX = -state.droneVelocity.z * 0.05;
+          const targetTiltZ = state.droneVelocity.x * 0.05;
+          drone.rotation.x += (targetTiltX - drone.rotation.x) * 0.1;
+          drone.rotation.z += (targetTiltZ - drone.rotation.z) * 0.1;
+          drone.rotation.y = state.droneRotation.y;
+        }
+        
+        const propSpeed = 0.3 + state.throttle * 0.5;
+        for (let i = 0; i < propellers.length; i++) {
+          propellers[i].rotation.y += propSpeed + (i % 2 === 0 ? propSpeed * 0.1 : 0);
+        }
+        
+        checkCollisions();
+        
+        state.dronePosition.copy(drone.position);
+        state.throttle = gamepad ? gamepadThrottle : 0.5 + altitudeInput * 0.5;
+        
+        updateHUD();
+        
+        minimapUpdateTimer += delta;
+        if (minimapUpdateTimer > 0.5) {
+          updateMinimap();
+          minimapUpdateTimer = 0;
+        }
+        
+        // 相机模式
+        switch(state.cameraMode) {
+          case 0: {
+            fpvCamera.getWorldPosition(camera.position);
+            fpvCamera.getWorldQuaternion(camera.quaternion);
+            camera.rotateY(Math.PI);
+            break;
+          }
+          
+          case 1: {
+            const chaseOffset = new THREE.Vector3(0, 5, -12).applyEuler(state.droneRotation);
+            const chaseTargetPos = drone.position.clone().add(chaseOffset);
+            state.cameraTargetPosition.lerp(chaseTargetPos, 0.15);
+            camera.position.copy(state.cameraTargetPosition);
+            
+            const chaseLookTarget = drone.position.clone().add(
+              new THREE.Vector3(0, 1, 15).applyEuler(state.droneRotation)
+            );
+            state.cameraTargetLookAt.lerp(chaseLookTarget, 0.15);
+            camera.lookAt(state.cameraTargetLookAt);
+            break;
+          }
+          
+          case 2: {
+            if (state.isPointerLocked) {
+              const orbitAngle = state.mouse.x;
+              const orbitHeight = 8 + state.mouse.y * 10;
+              const orbitRadius = 20;
+              
+              const orbitPos = new THREE.Vector3(
+                drone.position.x + Math.cos(orbitAngle) * orbitRadius,
+                drone.position.y + orbitHeight,
+                drone.position.z + Math.sin(orbitAngle) * orbitRadius
+              );
+              state.cameraTargetPosition.lerp(orbitPos, 0.1);
+            } else {
+              const defaultOffset = new THREE.Vector3(0, 8, -20).applyEuler(state.droneRotation);
+              const defaultPos = drone.position.clone().add(defaultOffset);
+              state.cameraTargetPosition.lerp(defaultPos, 0.1);
+            }
+            
+            camera.position.copy(state.cameraTargetPosition);
+            camera.lookAt(drone.position);
+            break;
+          }
+        }
+      }
+      
+      for (const cloud of clouds) {
+        cloud.position.x += delta * 0.5;
+        if (cloud.position.x > 200) cloud.position.x = -200;
+      }
+      
+      renderer.render(scene, camera);
+    }
+
+    // ============ 开始游戏 ============
+    const landingScreen = document.getElementById('landing-screen');
+    const hud = document.getElementById('hud');
+    const startButton = document.getElementById('start-button');
+    
+    startButton.addEventListener('click', () => {
+      state.gameStarted = true;
+      landingScreen.classList.add('hidden');
+      hud.classList.add('visible');
+      
+      state.cameraMode = 0;
+      drone.position.set(0, 50, 0);
+      state.dronePosition.copy(drone.position);
+      state.lastPosition.copy(drone.position);
+      state.cameraTargetPosition.copy(new THREE.Vector3(0, 55, -12));
+      state.cameraTargetLookAt.copy(new THREE.Vector3(0, 50, 15));
+      
+      renderer.domElement.requestPointerLock();
+    });
+    
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+    updateMinimap();
+    
+    console.log('🚁 Urban FPV Drone Simulator - 原型已就绪');
+    console.log('A/D键已对调 | 鼠标平移方向已反转');
+  </script>
+</body>
+</html>
