@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pong</title>
+  <link rel="stylesheet" href="../classic-games.css">
+</head>
+<body>
+  <main class="game">
+    <h1>Pong</h1>
+    <p>Gioca contro il computer e raggiungi per primo cinque punti.</p>
+    <div class="game-bar"><span class="score">Tu <span id="playerScore">0</span> — <span id="cpuScore">0</span> CPU</span><button id="restart" type="button">Nuova partita</button></div>
+    <canvas class="playfield" id="board" width="800" height="450" tabindex="0" aria-label="Campo di gioco di Pong"></canvas>
+    <p class="message" id="message" role="status">Premi Spazio o tocca il campo per iniziare.</p>
+  </main>
+  <script type="module" src="./game.js"></script>
+</body>
+</html>

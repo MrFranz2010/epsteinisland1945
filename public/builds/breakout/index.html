@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Breakout</title>
+  <link rel="stylesheet" href="../classic-games.css">
+</head>
+<body>
+  <main class="game">
+    <h1>Breakout</h1>
+    <p>Rompi tutti i mattoni prima di esaurire le tre vite.</p>
+    <div class="game-bar"><span class="score">Punti: <span id="score">0</span> · Vite: <span id="lives">3</span></span><button id="restart" type="button">Nuova partita</button></div>
+    <canvas class="playfield" id="board" width="800" height="450" tabindex="0" aria-label="Campo di gioco di Breakout"></canvas>
+    <p class="message" id="message" role="status">Premi Spazio o tocca il campo per iniziare.</p>
+  </main>
+  <script type="module" src="./game.js"></script>
+</body>
+</html>

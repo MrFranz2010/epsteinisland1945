@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Campo minato</title>
+  <link rel="stylesheet" href="../classic-games.css">
+</head>
+<body>
+  <main class="game">
+    <h1>Campo minato</h1>
+    <p>Trova le 15 mine usando i numeri come indizi.</p>
+    <div class="game-bar"><span class="score">Mine: <span id="remaining">15</span></span><button id="flagMode" type="button" aria-pressed="false">Modalità bandierina: no</button><button id="restart" type="button">Nuova partita</button></div>
+    <div class="mine-board" id="board" role="group" aria-label="Campo minato"></div>
+    <p class="message" id="message" role="status">Scopri una casella. Il primo tocco è sempre sicuro.</p>
+  </main>
+  <script type="module" src="./game.js"></script>
+</body>
+</html>

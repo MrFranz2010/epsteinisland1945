@@ -10,6 +10,7 @@ Sito statico multigioco ospitato su Netlify, senza framework o passaggi di build
 - `public/assets/fullscreen.js`: schermo intero con fallback per browser non compatibili.
 - `public/giochi/polytrack/index.html`: pagina di PolyTrack e modello per nuove pagine.
 - `public/builds/polytrack-0.5.2/`: build di PolyTrack usata dalla pagina; include un evento minimo per inviare alla lobby il tempo di arrivo.
+- `public/builds/classic-games.css`: stile condiviso dei classici originali Snake, Pong, Breakout, 2048 e Campo minato, ospitati localmente.
 - `netlify.toml`: pubblicazione della sola cartella `public`, per escludere upload originali e documentazione.
 
 Il catalogo si modifica nei file del progetto: non ci sono pannelli admin o registrazioni. Le sole funzioni serverless aggiunte gestiscono lobby e tempi di PolyTrack tramite Netlify Blobs; il resto del catalogo rimane statico.
@@ -47,6 +48,8 @@ Il catalogo si modifica nei file del progetto: non ci sono pannelli admin o regi
 Installa le dipendenze con `npm install`, avvia Netlify Dev dalla root con `netlify dev --port 8889` e apri `http://localhost:8889/`. Verifica catalogo, ricerca, pagina gioco, avvio della build, ricaricamento, schermo intero e lobby multiplayer. Non è necessario eseguire comandi di build.
 
 La build di PolyTrack è una versione non ufficiale: le classifiche e i ghost originali non sono disponibili. Il supporto mobile e ai controller dipende dalla build. Conserva i crediti e i collegamenti degli autori e pubblica soltanto giochi per cui hai i necessari diritti.
+
+Snake, Pong, Breakout, 2048 e Campo minato sono implementazioni originali delle regole dei rispettivi classici. Le build sono incluse nel sito, non caricano risorse di terze parti e funzionano senza connessione esterna.
 
 ## Lobby multiplayer di PolyTrack
 
