@@ -40,10 +40,45 @@
       </div>
       <p class="player-note" id="loadNotice" role="status" hidden></p>
     </section>
+    <section class="multiplayer-panel" aria-labelledby="multiplayerTitle">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">SFIDA TRA AMICI</p>
+          <h2 id="multiplayerTitle">Crea una lobby e confronta i tempi</h2>
+        </div>
+        <span class="muted">Le lobby scadono dopo 7 giorni</span>
+      </div>
+      <div class="lobby-forms" id="lobbyForms">
+        <form id="createLobbyForm" class="lobby-form">
+          <label for="playerName">Il tuo nome</label>
+          <input id="playerName" name="name" maxlength="20" autocomplete="nickname" required>
+          <button class="primary" type="submit">Crea lobby</button>
+        </form>
+        <form id="joinLobbyForm" class="lobby-form">
+          <label for="lobbyCode">Hai un codice?</label>
+          <div class="lobby-join-controls">
+            <input id="lobbyCode" name="code" maxlength="6" autocomplete="off" placeholder="CODICE" required>
+            <button type="submit">Unisciti</button>
+          </div>
+        </form>
+      </div>
+      <p class="lobby-status" id="lobbyStatus" role="status" aria-live="polite">Crea una lobby o inserisci il codice ricevuto da un amico.</p>
+      <div id="lobbyRoom" class="lobby-room" hidden>
+        <div class="lobby-invite">
+          <p>Codice lobby <strong id="lobbyCodeDisplay"></strong></p>
+          <button id="copyInviteBtn" type="button">Copia invito</button>
+        </div>
+        <h3>Classifica · stessa pista</h3>
+        <ol id="lobbyLeaderboard" class="lobby-leaderboard"></ol>
+        <p class="muted">I tempi vengono registrati automaticamente quando termini una gara. Per un confronto corretto, scegliete la stessa pista nel gioco.</p>
+        <button id="leaveLobbyBtn" type="button">Esci dalla lobby</button>
+      </div>
+    </section>
     <noscript><p>Attiva JavaScript per avviare il gioco all’interno della pagina.</p></noscript>
     <p class="credits" id="gameCredits"></p>
     <nav class="related-games" aria-label="Altri giochi"><h2>Continua a giocare</h2><div id="relatedGames"></div><a class="button-link" href="../../">← Torna al catalogo</a></nav>
   </main>
   <footer>Epstein island · Raccolta non ufficiale. Ogni gioco appartiene ai rispettivi autori.</footer>
+  <script type="module" src="../../assets/polytrack-multiplayer.js"></script>
 </body>
 </html>

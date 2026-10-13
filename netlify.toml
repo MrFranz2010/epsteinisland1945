@@ -1,6 +1,11 @@
 [build]
   publish = "public"
 
+[[redirects]]
+  from = "/api/polytrack/lobbies"
+  to = "/.netlify/functions/polytrack-lobbies"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]

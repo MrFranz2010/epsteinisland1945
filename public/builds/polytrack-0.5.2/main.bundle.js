@@ -29078,6 +29078,7 @@
                 }
                 if (null != Gw(this, Yv, "f").finishFrames && null == n.finishFrames) {
                     this.notificationAudioEnabled && Gw(this, Dv, "m", Pw).call(this);
+                    window.parent !== window && window.parent.postMessage({ type: "racing-zone:polytrack-finish", timeMs: this.getFinishTime().numberOfFrames }, window.location.origin);
                     for (const e of Gw(this, rw, "f"))
                         e(this)
                 }

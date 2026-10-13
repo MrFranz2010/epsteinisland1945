@@ -70,6 +70,27 @@ button:disabled { opacity: .55; cursor: wait; }
 .placeholder h2 { margin: 0 0 10px; font-size: clamp(1.25rem,3vw,1.8rem); }
 .placeholder p { margin: 0 auto 18px; color: var(--muted); line-height: 1.6; }
 .player-note { margin: 0; padding: 12px 16px; color: var(--muted); background: var(--panel); font-size: .8rem; line-height: 1.5; }
+.multiplayer-panel { margin-top: 24px; padding: 22px; border: 1px solid rgba(168,216,110,.25); border-radius: 16px; background: var(--panel); }
+.multiplayer-panel .section-heading { margin-bottom: 16px; }
+.multiplayer-panel .eyebrow { margin-bottom: 7px; }
+.lobby-forms { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.lobby-form { display: grid; align-content: start; gap: 8px; }
+.lobby-form label { color: var(--muted); font-size: .85rem; }
+.lobby-form input { margin: 0; }
+.lobby-join-controls { display: flex; gap: 8px; }
+.lobby-join-controls input { min-width: 0; }
+.lobby-status { min-height: 1.5em; margin: 14px 0 0; color: var(--muted); font-size: .9rem; line-height: 1.5; }
+.lobby-status[data-error="true"] { color: #ff9b9b; }
+.lobby-room { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); }
+.lobby-invite { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.lobby-invite p { margin: 0; color: var(--muted); }
+.lobby-invite strong { margin-left: 8px; color: var(--accent); font-size: 1.25rem; letter-spacing: .12em; }
+.lobby-room h3 { margin: 22px 0 10px; font-size: 1rem; }
+.lobby-leaderboard { display: grid; gap: 8px; margin: 0 0 14px; padding: 0; list-style: none; counter-reset: lobby-rank; }
+.lobby-leaderboard li { display: grid; grid-template-columns: 38px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 11px 13px; border: 1px solid var(--border); border-radius: 9px; background: var(--panel-2); counter-increment: lobby-rank; }
+.lobby-leaderboard li::before { color: var(--muted); content: counter(lobby-rank) "."; font-weight: 800; }
+.lobby-leaderboard .lobby-time { font-variant-numeric: tabular-nums; font-weight: 800; }
+.lobby-room > .muted { line-height: 1.55; }
 .below-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; margin-top: 18px; }
 .info-card { padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--panel); }
 .info-card h2 { margin: 0 0 10px; font-size: 1rem; }
@@ -99,7 +120,7 @@ body.pseudo-fullscreen-active { overflow: hidden; overscroll-behavior: none; }
   .brand { font-size: .85rem; }
   .header-link { font-size: .8rem; }
   main { width: calc(100% - 20px); padding-top: 30px; }
-  .catalog-intro, .below-grid { grid-template-columns: 1fr; gap: 16px; }
+  .catalog-intro, .below-grid, .lobby-forms { grid-template-columns: 1fr; gap: 16px; }
   .catalog-intro { margin-bottom: 32px; }
   .catalog-tools { grid-template-columns: 1fr; }
   .game-toolbar { align-items: flex-start; }

@@ -9,10 +9,10 @@ Sito statico multigioco ospitato su Netlify, senza framework o passaggi di build
 - `public/assets/player.js`: player condiviso, caricamento, riprova e crediti.
 - `public/assets/fullscreen.js`: schermo intero con fallback per browser non compatibili.
 - `public/giochi/polytrack/index.html`: pagina di PolyTrack e modello per nuove pagine.
-- `public/builds/polytrack/`: build 0.4.1 estratta dall'archivio fornito, mantenuta senza modifiche.
+- `public/builds/polytrack-0.5.2/`: build di PolyTrack usata dalla pagina; include un evento minimo per inviare alla lobby il tempo di arrivo.
 - `netlify.toml`: pubblicazione della sola cartella `public`, per escludere upload originali e documentazione.
 
-Il catalogo si modifica nei file del progetto: non sono presenti pannelli admin, registrazioni, database o caricamenti dal browser. Non sono stati aggiunti sistemi di salvataggio; quelli interni alla build fornita restano invariati.
+Il catalogo si modifica nei file del progetto: non ci sono pannelli admin o registrazioni. Le sole funzioni serverless aggiunte gestiscono lobby e tempi di PolyTrack tramite Netlify Blobs; il resto del catalogo rimane statico.
 
 ## Aggiungere un gioco
 
@@ -44,6 +44,12 @@ Il catalogo si modifica nei file del progetto: non sono presenti pannelli admin,
 
 ## Verificare il sito
 
-Avvia Netlify Dev dalla root con `netlify dev --port 8889` e apri `http://localhost:8889/`. Verifica catalogo, ricerca, pagina gioco, avvio della build, ricaricamento e schermo intero. Non è necessario eseguire comandi di build.
+Installa le dipendenze con `npm install`, avvia Netlify Dev dalla root con `netlify dev --port 8889` e apri `http://localhost:8889/`. Verifica catalogo, ricerca, pagina gioco, avvio della build, ricaricamento, schermo intero e lobby multiplayer. Non è necessario eseguire comandi di build.
 
-La build fornita di PolyTrack indica la versione 0.4.1 nel menu del gioco, non una versione aggiornata. I suoi servizi online fanno riferimento ai server originali: l'integrazione locale non garantisce classifiche, account o servizi remoti. Il supporto mobile e ai controller dipende dalla build. Conserva i crediti e i collegamenti degli autori e pubblica soltanto giochi per cui hai i necessari diritti.
+La build di PolyTrack è una versione non ufficiale: le classifiche e i ghost originali non sono disponibili. Il supporto mobile e ai controller dipende dalla build. Conserva i crediti e i collegamenti degli autori e pubblica soltanto giochi per cui hai i necessari diritti.
+
+## Lobby multiplayer di PolyTrack
+
+La pagina di PolyTrack usa una Netlify Function e Netlify Blobs per creare lobby condivise tramite codice. Le lobby accettano fino a 8 piloti, conservano il miglior tempo per 7 giorni e vengono eliminate logicamente quando l'ultimo pilota esce. Il browser registra automaticamente il tempo di arrivo della build 0.5.2; per confrontare i risultati, tutti i partecipanti devono correre sulla stessa pista. I tempi si basano sul gioco eseguito nel browser e non sono verificati contro trucchi o modifiche locali.
+
+Netlify installa `@netlify/blobs` dal `package.json` durante la pubblicazione. Per provare in locale, installa le dipendenze con `npm install` e avvia `netlify dev --port 8889`; Blobs e le funzioni richiedono Netlify Dev o un deploy Netlify e non funzionano servendo `public/` direttamente.
