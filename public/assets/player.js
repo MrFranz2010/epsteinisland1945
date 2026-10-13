@@ -50,6 +50,9 @@ async function startGame() {
     if (entryUrl.origin !== location.origin || !entryUrl.pathname.startsWith(buildsPath)) {
       throw new Error('Invalid game entry');
     }
+    if (game.slug === 'polytrack') {
+      entryUrl.searchParams.set('profile', document.body.dataset.polytrackProfile || 'default');
+    }
     const response = await fetch(entryUrl, { method: 'HEAD' });
     if (!loading) return;
     if (!response.ok || !response.headers.get('content-type')?.includes('text/html')) {

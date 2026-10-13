@@ -52,4 +52,6 @@ La build di PolyTrack è una versione non ufficiale: le classifiche e i ghost or
 
 La pagina di PolyTrack usa una Netlify Function e Netlify Blobs per creare lobby condivise tramite codice. Le lobby accettano fino a 8 piloti, conservano il miglior tempo per 7 giorni e vengono eliminate logicamente quando l'ultimo pilota esce. Il browser registra automaticamente il tempo di arrivo della build 0.5.2; per confrontare i risultati, tutti i partecipanti devono correre sulla stessa pista. I tempi si basano sul gioco eseguito nel browser e non sono verificati contro trucchi o modifiche locali.
 
+La stessa pagina permette di creare e cambiare profili locali. Record, livree e lobby vengono conservati separatamente nel `localStorage` del browser; il profilo iniziale importa i salvataggi PolyTrack già presenti. I profili non sono account e non si sincronizzano tra browser o dispositivi.
+
 Netlify installa `@netlify/blobs` dal `package.json` durante la pubblicazione. Per provare in locale, installa le dipendenze con `npm install` e avvia `netlify dev --port 8889`; Blobs e le funzioni richiedono Netlify Dev o un deploy Netlify e non funzionano servendo `public/` direttamente.

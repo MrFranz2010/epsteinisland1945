@@ -48,6 +48,22 @@
         </div>
         <span class="muted">Le lobby scadono dopo 7 giorni</span>
       </div>
+      <div class="local-profile">
+        <h3>Profili salvati su questo browser</h3>
+        <div class="profile-controls">
+          <label for="localProfileSelect">Giocatore attivo
+            <select id="localProfileSelect"></select>
+          </label>
+          <form id="createProfileForm" class="profile-create-form">
+            <label for="newProfileName">Aggiungi un giocatore</label>
+            <div class="lobby-join-controls">
+              <input id="newProfileName" maxlength="20" autocomplete="off" placeholder="Nome del giocatore" required>
+              <button class="primary" type="submit">Crea profilo</button>
+            </div>
+          </form>
+        </div>
+        <p class="muted">Ogni profilo conserva separatamente record, livree e lobby su questo browser. I dati non vengono sincronizzati tra dispositivi.</p>
+      </div>
       <div class="lobby-forms" id="lobbyForms">
         <form id="createLobbyForm" class="lobby-form">
           <label for="playerName">Il tuo nome</label>

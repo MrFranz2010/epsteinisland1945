@@ -37849,7 +37849,7 @@ var KT, qT, YT, XT, ZT, JT, $T, eC, tC, nC, iC, rC, aC, sC, oC, lC, cC, hC, dC, 
             }
             static getPositionSuffix(e) {
                 if (e <= 0 || !Number.isInteger(e))
-                    throw new Error("Position must be a positive integer.");
+                    return "";
                 const t = e % 100;
                 if (t >= 11 && t <= 13)
                     return "th";

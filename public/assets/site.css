@@ -73,6 +73,13 @@ button:disabled { opacity: .55; cursor: wait; }
 .multiplayer-panel { margin-top: 24px; padding: 22px; border: 1px solid rgba(168,216,110,.25); border-radius: 16px; background: var(--panel); }
 .multiplayer-panel .section-heading { margin-bottom: 16px; }
 .multiplayer-panel .eyebrow { margin-bottom: 7px; }
+.local-profile { margin-bottom: 20px; padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-2); }
+.local-profile h3 { margin: 0 0 12px; font-size: .95rem; }
+.local-profile .muted { margin: 10px 0 0; line-height: 1.5; }
+.profile-controls { display: grid; grid-template-columns: minmax(180px,.7fr) minmax(260px,1fr); gap: 14px; }
+.profile-controls label, .profile-create-form label { display: grid; align-content: start; gap: 7px; color: var(--muted); font-size: .85rem; }
+.profile-controls select, .profile-create-form input { margin: 0; }
+.profile-create-form { display: grid; gap: 7px; }
 .lobby-forms { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .lobby-form { display: grid; align-content: start; gap: 8px; }
 .lobby-form label { color: var(--muted); font-size: .85rem; }
@@ -120,7 +127,7 @@ body.pseudo-fullscreen-active { overflow: hidden; overscroll-behavior: none; }
   .brand { font-size: .85rem; }
   .header-link { font-size: .8rem; }
   main { width: calc(100% - 20px); padding-top: 30px; }
-  .catalog-intro, .below-grid, .lobby-forms { grid-template-columns: 1fr; gap: 16px; }
+  .catalog-intro, .below-grid, .lobby-forms, .profile-controls { grid-template-columns: 1fr; gap: 16px; }
   .catalog-intro { margin-bottom: 32px; }
   .catalog-tools { grid-template-columns: 1fr; }
   .game-toolbar { align-items: flex-start; }
