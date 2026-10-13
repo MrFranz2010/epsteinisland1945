@@ -1,6 +1,6 @@
-# Racing Zone
+# Epstein Island Game Catalog
 [![Netlify Status](https://api.netlify.com/api/v1/badges/ffcd07d1-888b-40a4-a8e8-cf572b77745a/deploy-status)](https://app.netlify.com/projects/epsteinisland1945/deploys)
-Sito statico multigioco ospitato su Netlify, senza framework o passaggi di build. La home presenta il catalogo; ogni gioco ha una pagina dedicata e viene eseguito in un iframe locale, senza redirect verso altri siti.
+Catalogo statico multigioco pubblicabile su Netlify o GitHub Pages, senza framework o passaggi di build. La home presenta il catalogo; ogni gioco ha una pagina dedicata e viene eseguito in un iframe locale, senza redirect verso altri siti.
 
 ## Struttura
 
@@ -12,9 +12,10 @@ Sito statico multigioco ospitato su Netlify, senza framework o passaggi di build
 - `public/builds/polytrack-0.5.2/`: build di PolyTrack usata dalla pagina; include un evento minimo per inviare alla lobby il tempo di arrivo.
 - `public/builds/classic-games.css`: stile condiviso dei classici originali Snake, Pong, Breakout, 2048 e Campo minato, ospitati localmente.
 - `public/builds/`: build autorizzate dei giochi open source APEX FORMULA, Voxel Musou, K8s Games, VIM Master e Racing JS. Ogni build conserva le proprie licenze e attribuzioni.
-- `netlify.toml`: pubblicazione della sola cartella `public`, per escludere upload originali e documentazione.
+- `netlify.toml`: pubblicazione della sola cartella `public` su Netlify.
+- `.github/workflows/pages.yml`: pubblicazione automatica della cartella statica su GitHub Pages quando si aggiorna `main`.
 
-Il catalogo si modifica nei file del progetto: non ci sono pannelli admin o registrazioni. Le sole funzioni serverless aggiunte gestiscono lobby e tempi di PolyTrack tramite Netlify Blobs; il resto del catalogo rimane statico.
+Il catalogo si modifica nei file del progetto: non ci sono pannelli admin o registrazioni. Le sole funzioni serverless aggiunte gestiscono lobby e tempi di PolyTrack tramite Netlify Blobs; il resto del catalogo rimane statico. GitHub Pages ospita il sito statico, ma non esegue funzioni serverless: le lobby PolyTrack sono disabilitate lì, mentre profili e salvataggi locali continuano a funzionare.
 
 ## Aggiungere un gioco
 
@@ -40,13 +41,19 @@ Il catalogo si modifica nei file del progetto: non ci sono pannelli admin o regi
 ```
 
 4. Copia `public/giochi/polytrack/index.html` in `public/giochi/nuovo-gioco/index.html`. Cambia `data-game="polytrack"` in `data-game="nuovo-gioco"`. Aggiorna anche il titolo HTML, la descrizione e i testi iniziali di categoria, titolo e introduzione, che vengono poi valorizzati dal player condiviso.
-5. Pubblica le modifiche. Il nuovo gioco compare automaticamente nel catalogo, nel filtro categorie e nei collegamenti alle altre pagine di gioco. Il suo indirizzo è `/giochi/nuovo-gioco/`.
+5. Pubblica le modifiche. Il nuovo gioco compare automaticamente nel catalogo, nel filtro categorie e nei collegamenti alle altre pagine di gioco. Il suo indirizzo è `<percorso-del-sito>/giochi/nuovo-gioco/`.
 
 `cover`, `coverAlt`, `version`, `notes`, `credits` e `authorUrl` sono facoltativi. `entry` deve puntare a un documento HTML sotto `/builds/` sullo stesso sito. Non aggiungere URL di giochi esterni come destinazione del player.
 
+## Pubblicare su GitHub Pages
+
+Il workflow in `.github/workflows/pages.yml` pubblica automaticamente il contenuto di `public/` quando viene aggiornato il branch `main` o quando il workflow viene avviato manualmente. Nelle impostazioni del repository, imposta **Settings → Pages → Build and deployment → Source** su **GitHub Actions**. Il workflow gestisce sia i siti utente (`<utente>.github.io`) sia i siti di progetto (`<utente>.github.io/<repository>/`); `.nojekyll` disattiva l'elaborazione Jekyll e preserva i file statici così come sono.
+
+Non serve compilare o installare dipendenze per GitHub Pages. La configurazione del deploy imposta `polytrackLobbies: false`, perché GitHub Pages non supporta le Netlify Functions. Per mantenere le lobby multiplayer, usa il deploy Netlify configurato in `netlify.toml`.
+
 ## Verificare il sito
 
-Installa le dipendenze con `npm install`, avvia Netlify Dev dalla root con `netlify dev --port 8889` e apri `http://localhost:8889/`. Verifica catalogo, ricerca, pagina gioco, avvio della build, ricaricamento, schermo intero e lobby multiplayer. Non è necessario eseguire comandi di build.
+Per testare il sito statico, servi `public/` con un server HTTP e verifica catalogo, ricerca, pagine gioco, avvio delle build e schermo intero. Per verificare le lobby, installa le dipendenze con `npm install`, avvia Netlify Dev dalla root con `netlify dev --port 8889` e apri `http://localhost:8889/`. Non è necessario eseguire comandi di build.
 
 La build di PolyTrack è una versione non ufficiale: le classifiche e i ghost originali non sono disponibili. Il supporto mobile e ai controller dipende dalla build. Conserva i crediti e i collegamenti degli autori e pubblica soltanto giochi per cui hai i necessari diritti.
 

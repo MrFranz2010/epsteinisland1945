@@ -1,4 +1,5 @@
-const endpoint = '/api/polytrack/lobbies';
+const endpoint = new URL('../api/polytrack/lobbies', import.meta.url).pathname;
+const lobbiesEnabled = window.siteConfig?.polytrackLobbies === true;
 const profilesKey = 'racing-zone-polytrack-profiles';
 const activeProfileKey = 'racing-zone-polytrack-active-profile';
 const gameFrame = document.getElementById('gameFrame');
@@ -56,6 +57,7 @@ function renderProfiles() {
 }
 
 function restoreProfileLobby() {
+  if (!lobbiesEnabled) return;
   let savedLobby;
   try {
     savedLobby = JSON.parse(localStorage.getItem(profileLobbyKey(currentProfile.id)) || 'null');
@@ -360,12 +362,21 @@ window.addEventListener('message', async (event) => {
   }
 });
 
-if (initializeProfiles()) restoreProfileLobby();
+if (!lobbiesEnabled) {
+  document.getElementById('lobbyForms').hidden = true;
+  document.getElementById('lobbyRoom').hidden = true;
+  setStatus('Le lobby multiplayer non sono disponibili su GitHub Pages. Profili e salvataggi locali continuano a funzionare.');
+}
+if (initializeProfiles()) {
+  if (lobbiesEnabled) restoreProfileLobby();
+}
 else {
   profileSelect.disabled = true;
   createProfileForm.querySelector('button').disabled = true;
-  createForm.querySelector('button').disabled = true;
-  joinForm.querySelector('button').disabled = true;
+  if (lobbiesEnabled) {
+    createForm.querySelector('button').disabled = true;
+    joinForm.querySelector('button').disabled = true;
+  }
 }
 const invitedCode = new URL(location.href).searchParams.get('lobby');
 if (invitedCode) codeInput.value = invitedCode.toUpperCase();

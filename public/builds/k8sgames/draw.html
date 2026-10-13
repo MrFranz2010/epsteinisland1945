@@ -936,7 +936,8 @@
         try {
           const json = JSON.stringify(state);
           const encoded = btoa(new TextEncoder().encode(json).reduce((s, b) => s + String.fromCharCode(b), ''));
-          const url = `${window.location.origin}/draw#${encoded}`;
+          const url = new URL(window.location.href);
+          url.hash = encoded;
           navigator.clipboard.writeText(url).then(() => {
             const btn = document.getElementById('btn-share');
             const original = btn.innerHTML;
