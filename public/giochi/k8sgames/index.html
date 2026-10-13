@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="description" content="Simulazione 3D di Kubernetes: gestisci un cluster, risolvi incidenti e usa kubectl.">
+  <title>K8s Games</title>
+  <link rel="stylesheet" href="../../assets/site.css">
+  <script type="module" src="../../assets/player.js"></script>
+</head>
+<body data-game="k8sgames">
+  <header class="site-header"><a class="brand" href="../../"><span class="brand-mark" aria-hidden="true">↗</span> EPSTEIN ISLAND</a><a class="header-link" href="../../">← Tutti i giochi</a></header>
+  <main>
+    <section class="intro"><p class="eyebrow" id="gameCategory">Simulazione</p><h1 id="gameTitle">K8S GAMES<span class="accent">.</span></h1><p id="gameDescription">Gestisci un cluster 3D: distribuisci pod, risolvi incidenti e usa comandi kubectl.</p></section>
+    <section class="game-shell" id="gameShell" aria-label="Area di gioco K8s Games">
+      <div class="game-toolbar"><div class="game-label"><span class="status-dot" aria-hidden="true"></span><span id="gameStatus" role="status">Pronto a giocare</span></div><div class="toolbar-actions"><button id="reloadBtn" type="button" disabled>Ricarica gioco</button><button class="primary" id="fullscreenBtn" type="button" aria-pressed="false"><span id="fullscreenText">Schermo intero</span></button></div></div>
+      <div class="game-stage" id="gameStage"><iframe id="gameFrame" title="K8s Games" allow="fullscreen; gamepad; autoplay" sandbox="allow-scripts allow-same-origin allow-pointer-lock" allowfullscreen hidden></iframe><div class="placeholder" id="placeholder"><div class="placeholder-inner"><h2 id="stageTitle">Pronto a gestire il cluster?</h2><p id="stageDescription">Scegli una modalita e affronta una simulazione 3D interattiva.</p><button class="primary" id="playBtn" type="button">Gioca ora →</button><a id="externalPlayLink" hidden></a></div></div></div>
+      <p class="player-note" id="loadNotice" role="status" hidden></p>
+    </section>
+    <div class="below-grid"><section class="info-card"><h2>Comandi</h2><ul id="gameControls"></ul></section><section class="info-card"><h2>Informazioni</h2><p id="gameNotes"></p></section></div>
+    <p class="credits" id="gameCredits"></p><nav class="related-games" aria-label="Altri giochi"><h2>Continua a giocare</h2><div id="relatedGames"></div><a class="button-link" href="../../">← Torna al catalogo</a></nav>
+  </main>
+  <footer>Epstein island · Raccolta non ufficiale. Ogni gioco appartiene ai rispettivi autori.</footer>
+</body>
+</html>

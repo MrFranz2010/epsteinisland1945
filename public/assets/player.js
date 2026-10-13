@@ -37,7 +37,7 @@ async function startGame() {
   loadNotice.hidden = true;
   gameStatus.textContent = 'Caricamento in corso…';
   document.getElementById('stageTitle').textContent = 'Preparazione del gioco…';
-  document.getElementById('stageDescription').textContent = 'Caricamento della build ospitata su Racing Zone.';
+  document.getElementById('stageDescription').textContent = 'Caricamento della build ospitata in locale.';
   gameShell.setAttribute('aria-busy', 'true');
   clearTimeout(loadTimeout);
   loadTimeout = setTimeout(() => {
@@ -84,7 +84,7 @@ reloadBtn.addEventListener('click', startGame);
 setupFullscreen(gameShell);
 
 if (game) {
-  document.title = `${game.title} — Racing Zone`;
+  document.title = `${game.title} — Epstein Island`;
   document.querySelector('meta[name="description"]').content = game.description;
   document.getElementById('gameTitle').textContent = game.title.toUpperCase();
   const accent = document.createElement('span');
