@@ -87,15 +87,17 @@ if (game) {
   accent.textContent = '.';
   document.getElementById('gameTitle').append(accent);
   document.getElementById('gameCategory').textContent = game.category + (game.version ? ` · Versione ${game.version}` : '');
-  document.getElementById('gameDescription').textContent = game.description;
+  const gameDescription = document.getElementById('gameDescription');
+  if (gameDescription) gameDescription.textContent = game.description;
   gameShell.setAttribute('aria-label', `Area di gioco ${game.title}`);
   gameFrame.title = game.title;
   for (const control of game.controls || []) {
     const item = document.createElement('li');
     item.textContent = control;
-    document.getElementById('gameControls').append(item);
+    document.getElementById('gameControls')?.append(item);
   }
-  document.getElementById('gameNotes').textContent = game.notes || 'Clicca nell’area di gioco per attivare i comandi.';
+  const gameNotes = document.getElementById('gameNotes');
+  if (gameNotes) gameNotes.textContent = game.notes || 'Clicca nell’area di gioco per attivare i comandi.';
   const credits = document.getElementById('gameCredits');
   credits.textContent = game.credits || '';
   if (game.authorUrl) {
