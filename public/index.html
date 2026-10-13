@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="description" content="Racing Zone: scegli un gioco e gioca direttamente nel sito, senza redirect.">
+  <title>Racing Zone — Tutti i giochi</title>
+  <link rel="stylesheet" href="/assets/site.css">
+  <script type="module" src="/assets/catalog.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="Racing Zone, home"><span class="brand-mark" aria-hidden="true">↗</span> RACING ZONE</a>
+    <span class="header-tag">Scegli. Gioca. Riprova.</span>
+  </header>
+  <main>
+    <section class="intro catalog-intro">
+      <div><p class="eyebrow">La tua sala giochi</p><h1>LA PROSSIMA<br>SFIDA<span class="accent">.</span></h1></div>
+      <p>Un gioco, un nuovo record. Scegli la tua pista e gioca qui, senza lasciare Racing Zone.</p>
+    </section>
+    <section aria-labelledby="catalogHeading">
+      <div class="section-heading"><h2 id="catalogHeading">Tutti i giochi</h2><span class="muted" id="gameCount" aria-live="polite"></span></div>
+      <div class="catalog-tools">
+        <label for="searchGames">Cerca un gioco<input type="search" id="searchGames" placeholder="Titolo o categoria…" autocomplete="off"></label>
+        <label for="filterCategory">Categoria<select id="filterCategory"><option value="">Tutte le categorie</option></select></label>
+      </div>
+      <div class="game-grid" id="gameList"></div>
+      <p class="info-card" id="emptyState" role="status" hidden>Nessun gioco trovato. Prova un altro titolo o una categoria diversa.</p>
+      <noscript><p>Attiva JavaScript per visualizzare il catalogo. Puoi aprire <a href="/giochi/polytrack/">PolyTrack</a> direttamente.</p></noscript>
+    </section>
+  </main>
+  <footer>Racing Zone · Raccolta non ufficiale. Ogni gioco appartiene ai rispettivi autori.</footer>
+</body>
+</html>
