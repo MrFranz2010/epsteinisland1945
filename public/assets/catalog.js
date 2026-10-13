@@ -1,4 +1,4 @@
-import { games, gamePage } from './games.js';
+import { games, gamePage, siteUrl } from './games.js';
 
 const gameList = document.getElementById('gameList');
 const searchGames = document.getElementById('searchGames');
@@ -21,7 +21,7 @@ function createCard(game) {
   artwork.className = 'game-artwork';
   if (game.cover) {
     const image = document.createElement('img');
-    image.src = game.cover;
+    image.src = siteUrl(game.cover);
     image.alt = game.coverAlt || game.title;
     image.loading = 'lazy';
     image.addEventListener('error', () => { image.hidden = true; }, { once: true });

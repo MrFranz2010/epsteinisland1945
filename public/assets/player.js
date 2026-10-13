@@ -1,4 +1,4 @@
-import { games, gamePage } from './games.js';
+import { games, gamePage, siteRoot, siteUrl } from './games.js';
 import { setupFullscreen } from './fullscreen.js';
 
 const game = games.find((entry) => entry.slug === document.body.dataset.game);
@@ -44,8 +44,9 @@ async function startGame() {
     gameFrame.removeAttribute('src');
   }, 45000);
   try {
-    const entryUrl = new URL(game.entry, location.origin);
-    if (entryUrl.origin !== location.origin || !entryUrl.pathname.startsWith('/builds/')) {
+    const entryUrl = new URL(siteUrl(game.entry));
+    const buildsPath = new URL('builds/', siteRoot).pathname;
+    if (entryUrl.origin !== location.origin || !entryUrl.pathname.startsWith(buildsPath)) {
       throw new Error('Invalid game entry');
     }
     const response = await fetch(entryUrl, { method: 'HEAD' });

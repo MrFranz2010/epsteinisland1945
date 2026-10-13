@@ -3,23 +3,29 @@ export const games = [
     slug: 'polytrack',
     title: 'PolyTrack',
     category: 'Racing',
-    version: '0.4.1',
-    description: 'Curve strette, salti e velocità. Prova a battere il tuo record, direttamente qui.',
-    entry: '/builds/polytrack/index.html',
-    cover: '/builds/polytrack/images/logo.svg',
+    version: '0.5.2',
+    description: 'Curve strette, salti e velocità. Batti i record online e sfida i ghost degli altri piloti.',
+    entry: '/builds/polytrack-0.5.2/index.html',
+    cover: '/builds/polytrack-0.5.2/images/logo.svg',
     coverAlt: 'Logo PolyTrack',
     controls: [
       'Guida: WASD oppure frecce direzionali.',
-      'Ricomincia: R oppure Invio.',
-      'Pausa: Esc. Clicca nel gioco per attivare i comandi.',
+      'Ricomincia: T. Torna all’ultimo checkpoint: R.',
+      'Vista in prima persona: C. Pausa: Spazio.',
       'Consulta le impostazioni del gioco per personalizzare i tasti.',
     ],
-    notes: 'Questa è la build 0.4.1 fornita per il sito, non la versione ufficiale più recente. È consigliata una tastiera; touch e controller dipendono dal supporto della build. I servizi online dipendono dai server originali e potrebbero non essere disponibili.',
-    credits: 'PolyTrack è sviluppato da Kodub. Hosting non ufficiale della build fornita; tutti i diritti appartengono ai rispettivi autori.',
+    notes: 'Classifiche e ghost online richiedono una connessione. I tracciati personalizzati non partecipano alle classifiche.',
+    credits: 'PolyTrack è sviluppato da Kodub. Build 0.5.2 autorizzata da StaticQuasar931; hosting non ufficiale.',
     authorUrl: 'https://www.kodub.com/apps/polytrack',
   },
 ];
 
+export const siteRoot = new URL('../', import.meta.url);
+
+export function siteUrl(path) {
+  return new URL(path.replace(/^\/+/, ''), siteRoot).href;
+}
+
 export function gamePage(game) {
-  return `/giochi/${game.slug}/`;
+  return siteUrl(`/giochi/${game.slug}/`);
 }
