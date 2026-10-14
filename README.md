@@ -4,7 +4,7 @@ Catalogo statico multigioco pubblicabile su Netlify o GitHub Pages, senza framew
 
 ## Struttura
 
-- `public/index.html`: home con novità, giochi aperti di recente, preferiti, ricerca e filtri.
+- `public/index.html`: home con novità, giochi aperti di recente, preferiti e filtri in una barra laterale adattiva.
 - `public/assets/games.js`: definizioni dei giochi, parte del codice del sito.
 - `public/assets/player.js`: player condiviso, caricamento, riprova e crediti.
 - `public/assets/fullscreen.js`: schermo intero con fallback per browser non compatibili.
@@ -21,7 +21,7 @@ Il catalogo si modifica nei file del progetto: non ci sono pannelli admin o regi
 
 ## Funzioni del catalogo
 
-La home permette di filtrare i giochi per categoria, modalità di comando (touch, tastiera, mouse o controller) e requisiti WebGL/connessione; ogni scheda riporta i comandi e i requisiti dichiarati per quel gioco. Le etichette descrivono il supporto verificato del singolo gioco: non tutti i giochi supportano tutti i dispositivi o controller.
+La home permette di filtrare i giochi per categoria, modalità di comando (touch, tastiera, mouse o controller) e requisiti WebGL/connessione; i filtri sono in una barra laterale stretta su desktop e in un pannello compatto sopra i risultati su tablet e telefoni. Ogni scheda mostra la categoria assegnata, i comandi e i requisiti dichiarati per quel gioco. Le etichette descrivono il supporto verificato del singolo gioco: non tutti i giochi supportano tutti i dispositivi o controller.
 
 Puoi salvare i preferiti con il pulsante a stella e ritrovare gli ultimi sei giochi aperti. Preferiti e cronologia sono salvati nel `localStorage` del browser, restano su quel dispositivo e non richiedono account; cancellando i dati del sito vengono rimossi. La sezione Novità mostra per 30 giorni i giochi che hanno un campo `addedAt` recente.
 

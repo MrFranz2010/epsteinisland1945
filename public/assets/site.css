@@ -42,10 +42,13 @@ h2 { margin: 0; font-size: 1.1rem; }
 .catalog-intro { display: grid; grid-template-columns: 1.4fr 1fr; align-items: end; gap: 32px; margin-bottom: 54px; }
 .catalog-intro p:not(.eyebrow) { max-width: 390px; padding-bottom: 5px; }
 .section-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
-.catalog-tools { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin-bottom: 24px; }
+.catalog-layout { display: grid; grid-template-columns: minmax(190px,220px) minmax(0,1fr); align-items: start; gap: 20px; }
+.catalog-sidebar { position: sticky; top: 16px; padding: 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--panel); }
+.catalog-sidebar h3 { margin: 0 0 10px; font-size: 1rem; }
+.catalog-tools { display: grid; gap: 10px; }
 .catalog-tools label { color: var(--muted); font-size: .8rem; }
-input, select { display: block; width: 100%; min-height: 46px; margin-top: 8px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--text); }
-.catalog-tools .favorite-filter { display: flex; align-items: center; gap: 10px; min-height: 46px; }
+input, select { display: block; width: 100%; min-height: 42px; margin-top: 6px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--text); }
+.catalog-tools .favorite-filter { display: flex; align-items: center; gap: 10px; min-height: 40px; }
 .favorite-filter input { width: 22px; height: 22px; min-height: 22px; margin: 0; accent-color: var(--accent); }
 .catalog-section { margin-bottom: 44px; }
 .game-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,340px),1fr)); gap: 20px; }
@@ -58,6 +61,7 @@ input, select { display: block; width: 100%; min-height: 46px; margin-top: 8px; 
 .game-card-body { display: flex; flex-direction: column; align-items: flex-start; padding: 32px; }
 .game-card-topline, .game-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
 .game-card-topline .eyebrow { margin: 0; }
+.category-tag { width: fit-content; min-height: 26px; padding: 4px 9px; border: 1px solid rgba(168,216,110,.35); border-radius: 999px; background: rgba(168,216,110,.08); color: var(--accent); font-size: .7rem; letter-spacing: .08em; }
 .favorite-button { flex: 0 0 auto; width: 44px; min-height: 44px; padding: 0; color: var(--accent); font-size: 1.5rem; }
 .game-card h3 { margin: 0; font-size: 2rem; letter-spacing: -.04em; }
 .game-title-link { color: inherit; text-decoration: none; }
@@ -144,6 +148,11 @@ body.pseudo-fullscreen-active { overflow: hidden; overscroll-behavior: none; }
 @media (max-width: 900px) {
   .game-card { grid-template-columns: 1fr; }
   .game-artwork { min-height: 180px; }
+  .catalog-layout { grid-template-columns: 1fr; gap: 16px; }
+  .catalog-sidebar { position: static; padding: 12px 14px; }
+  .catalog-sidebar h3 { margin-bottom: 8px; }
+  .catalog-tools { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; }
+  .catalog-tools label:first-child, .catalog-tools .favorite-filter { grid-column: span 2; }
 }
 @media (max-width: 700px) {
   .header-tag { display: none; }
@@ -155,12 +164,17 @@ body.pseudo-fullscreen-active { overflow: hidden; overscroll-behavior: none; }
   .game-page-heading h1 { font-size: clamp(1.7rem,8vw,2.5rem); }
   .catalog-intro, .below-grid, .lobby-forms, .profile-controls { grid-template-columns: 1fr; gap: 16px; }
   .catalog-intro { margin-bottom: 32px; }
-  .catalog-tools { grid-template-columns: 1fr; }
+  .catalog-tools { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+  .catalog-tools label:first-child { grid-column: 1 / -1; }
   .game-toolbar { align-items: flex-start; }
   .toolbar-actions { width: 100%; }
   .toolbar-actions button { flex: 1; }
   .game-stage { aspect-ratio: 4 / 3; }
   .game-card-body { padding: 24px; }
+}
+@media (max-width: 420px) {
+  .catalog-tools { grid-template-columns: 1fr; }
+  .catalog-tools label:first-child { grid-column: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }

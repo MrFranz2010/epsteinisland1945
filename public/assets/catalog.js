@@ -128,7 +128,7 @@ function createCard(game) {
   const topLine = document.createElement('div');
   topLine.className = 'game-card-topline';
   const category = document.createElement('span');
-  category.className = 'eyebrow';
+  category.className = 'category-tag';
   category.textContent = game.category;
   const favoriteButton = document.createElement('button');
   favoriteButton.className = 'favorite-button';

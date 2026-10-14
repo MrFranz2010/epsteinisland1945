@@ -30,31 +30,38 @@
     </section>
     <section class="catalog-section" aria-labelledby="catalogHeading">
       <div class="section-heading"><h2 id="catalogHeading">Tutti i giochi</h2><span class="muted" id="gameCount" aria-live="polite"></span></div>
-      <div class="catalog-tools">
-        <label for="searchGames">Cerca un gioco<input type="search" id="searchGames" placeholder="Titolo o categoria…" autocomplete="off"></label>
-        <label for="filterCategory">Categoria<select id="filterCategory"><option value="">Tutte le categorie</option></select></label>
-        <label for="filterInput">Comandi
-          <select id="filterInput">
-            <option value="">Tutti i comandi</option>
-            <option value="touch">Touch</option>
-            <option value="keyboard">Tastiera</option>
-            <option value="mouse">Mouse</option>
-            <option value="controller">Controller</option>
-          </select>
-        </label>
-        <label for="filterRequirement">Requisiti
-          <select id="filterRequirement">
-            <option value="">Tutti i requisiti</option>
-            <option value="webgl">Richiede WebGL</option>
-            <option value="internet">Richiede Internet</option>
-          </select>
-        </label>
-        <label class="favorite-filter" for="filterFavorites"><input type="checkbox" id="filterFavorites"> Mostra solo i preferiti</label>
+      <div class="catalog-layout">
+        <aside class="catalog-sidebar" aria-label="Filtri del catalogo">
+          <h3>Filtri</h3>
+          <div class="catalog-tools">
+            <label for="searchGames">Cerca<input type="search" id="searchGames" placeholder="Titolo o categoria…" autocomplete="off"></label>
+            <label for="filterCategory">Categoria<select id="filterCategory"><option value="">Tutte le categorie</option></select></label>
+            <label for="filterInput">Comandi
+              <select id="filterInput">
+                <option value="">Tutti i comandi</option>
+                <option value="touch">Touch</option>
+                <option value="keyboard">Tastiera</option>
+                <option value="mouse">Mouse</option>
+                <option value="controller">Controller</option>
+              </select>
+            </label>
+            <label for="filterRequirement">Requisiti
+              <select id="filterRequirement">
+                <option value="">Tutti i requisiti</option>
+                <option value="webgl">Richiede WebGL</option>
+                <option value="internet">Richiede Internet</option>
+              </select>
+            </label>
+            <label class="favorite-filter" for="filterFavorites"><input type="checkbox" id="filterFavorites"> Solo preferiti</label>
+          </div>
+        </aside>
+        <div class="catalog-results">
+          <div class="game-grid" id="gameList"></div>
+          <p class="info-card" id="emptyState" role="status" hidden>Nessun gioco trovato. Prova un altro titolo o una categoria diversa.</p>
+          <p class="catalog-status" id="catalogStatus" role="status" aria-live="polite"></p>
+          <noscript><p>Attiva JavaScript per visualizzare il catalogo. Puoi aprire <a href="./giochi/polytrack/">PolyTrack</a> direttamente.</p></noscript>
+        </div>
       </div>
-      <div class="game-grid" id="gameList"></div>
-      <p class="info-card" id="emptyState" role="status" hidden>Nessun gioco trovato. Prova un altro titolo o una categoria diversa.</p>
-      <p class="catalog-status" id="catalogStatus" role="status" aria-live="polite"></p>
-      <noscript><p>Attiva JavaScript per visualizzare il catalogo. Puoi aprire <a href="./giochi/polytrack/">PolyTrack</a> direttamente.</p></noscript>
     </section>
   </main>
   <footer>Epstein island · Raccolta non ufficiale. Ogni gioco appartiene ai rispettivi autori.</footer>
