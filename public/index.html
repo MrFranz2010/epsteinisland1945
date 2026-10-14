@@ -14,14 +14,46 @@
     <a class="brand" href="./" aria-label="Racing Zone, home"><span class="brand-mark" aria-hidden="true">S</span> Epstein island</a>
   </header>
   <main>
-    <section aria-labelledby="catalogHeading">
+    <section class="catalog-section" aria-labelledby="newsHeading">
+      <div class="section-heading"><h2 id="newsHeading">Novità</h2></div>
+      <div class="game-grid" id="newGames"></div>
+      <p class="info-card" id="noNews" hidden>Non ci sono nuovi giochi da mostrare.</p>
+    </section>
+    <section class="catalog-section" id="recentSection" aria-labelledby="recentHeading" hidden>
+      <div class="section-heading"><h2 id="recentHeading">Aperti di recente</h2></div>
+      <div class="game-grid" id="recentGames"></div>
+    </section>
+    <section class="catalog-section" aria-labelledby="favoritesHeading">
+      <div class="section-heading"><h2 id="favoritesHeading">I tuoi preferiti</h2></div>
+      <div class="game-grid" id="favoriteGames"></div>
+      <p class="info-card" id="emptyFavorites">Non hai ancora preferiti. Premi ☆ su una scheda per salvarla su questo dispositivo.</p>
+    </section>
+    <section class="catalog-section" aria-labelledby="catalogHeading">
       <div class="section-heading"><h2 id="catalogHeading">Tutti i giochi</h2><span class="muted" id="gameCount" aria-live="polite"></span></div>
       <div class="catalog-tools">
         <label for="searchGames">Cerca un gioco<input type="search" id="searchGames" placeholder="Titolo o categoria…" autocomplete="off"></label>
         <label for="filterCategory">Categoria<select id="filterCategory"><option value="">Tutte le categorie</option></select></label>
+        <label for="filterInput">Comandi
+          <select id="filterInput">
+            <option value="">Tutti i comandi</option>
+            <option value="touch">Touch</option>
+            <option value="keyboard">Tastiera</option>
+            <option value="mouse">Mouse</option>
+            <option value="controller">Controller</option>
+          </select>
+        </label>
+        <label for="filterRequirement">Requisiti
+          <select id="filterRequirement">
+            <option value="">Tutti i requisiti</option>
+            <option value="webgl">Richiede WebGL</option>
+            <option value="internet">Richiede Internet</option>
+          </select>
+        </label>
+        <label class="favorite-filter" for="filterFavorites"><input type="checkbox" id="filterFavorites"> Mostra solo i preferiti</label>
       </div>
       <div class="game-grid" id="gameList"></div>
       <p class="info-card" id="emptyState" role="status" hidden>Nessun gioco trovato. Prova un altro titolo o una categoria diversa.</p>
+      <p class="catalog-status" id="catalogStatus" role="status" aria-live="polite"></p>
       <noscript><p>Attiva JavaScript per visualizzare il catalogo. Puoi aprire <a href="./giochi/polytrack/">PolyTrack</a> direttamente.</p></noscript>
     </section>
   </main>
