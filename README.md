@@ -16,6 +16,8 @@ Catalogo statico multigioco pubblicabile su Netlify o GitHub Pages, senza framew
 - `public/builds/`: build autorizzate dei giochi open source APEX FORMULA, Voxel Musou, K8s Games, VIM Master e Racing JS. Ogni build conserva le proprie licenze e attribuzioni.
 - `public/builds/railway-miner/`: gioco incrementale originale Railway Miner, con salvataggio locale e senza dipendenze esterne.
 - `public/builds/plants-vs-zombies/`: pagina wrapper per incorporare il port PvZ Portable ospitato da Retro Games Center; il catalogo non include file del gioco.
+- `public/builds/candy-crush-clone/`: wrapper per la demo web di Candy Crush Clone ospitata dall’autore su GitHub Pages.
+- `public/builds/tiger-ball/`: wrapper per l’iframe Tiger Ball Online fornito da 4j.com.
 - `netlify.toml`: pubblicazione della sola cartella `public` su Netlify.
 - `.github/workflows/pages.yml`: pubblicazione automatica della cartella statica su GitHub Pages quando si aggiorna `main`.
 
@@ -77,6 +79,8 @@ Snake, Pong, Breakout, 2048 e Campo minato sono implementazioni originali delle 
 Railway Miner è un gioco incrementale originale per giocatore singolo: il treno raccoglie minerali in automatico, vende il carico in stazione e usa i ricavi per acquistare potenziamenti. La build usa grafica Canvas e salva i progressi nel browser; non richiede connessione.
 
 Plants vs. Zombies — PvZ Portable viene caricato tramite iframe da Retro Games Center e richiede una connessione. Il catalogo non ospita né fornisce le risorse di Plants vs. Zombies; il port può chiedere all'utente di importare un archivio ZIP dal proprio dispositivo. Usa soltanto file che possiedi e che sei autorizzato a utilizzare.
+
+Candy Crush Clone di Tobse Fritz e Tiger Ball Online di 4j.com sono incorporati da host esterni; il sito non copia né ospita le loro build. Il repository di Candy Crush Clone dichiara una licenza MIT per il codice, ma elenca anche musica, immagini, pulsanti e font con licenze separate, che restano soggetti ai termini dei rispettivi titolari. Candy Crush Clone non è affiliato a King.
 
 APEX FORMULA, Voxel Musou, K8s Games, VIM Master e Racing JS sono giochi di altri autori, integrati da build locali secondo le licenze incluse nelle rispettive cartelle `public/builds/`. K8s Games carica Three.js, Tailwind e i font da CDN. Racing JS include sorgenti e risorse con licenza AGPL-3.0-or-later e le licenze dei componenti terzi; la classifica online originale non è inclusa. APEX FORMULA, Voxel Musou e Racing JS richiedono WebGL.
 

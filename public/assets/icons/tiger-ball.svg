@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" role="img" aria-labelledby="title">
+  <title id="title">Palla arancione in volo verso un bersaglio circolare</title>
+  <rect width="240" height="160" rx="20" fill="#152332"/>
+  <path d="M28 127h184" stroke="#58706d" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="184" cy="77" r="38" fill="#263d45" stroke="#9dc8ba" stroke-width="4"/>
+  <circle cx="184" cy="77" r="24" fill="#3e5960" stroke="#d9e8c7" stroke-width="3"/>
+  <circle cx="184" cy="77" r="10" fill="#e8bd64"/>
+  <path d="m46 91 13-25 28 7 11 27-20 19-27-7Z" fill="#f29b52" stroke="#ffe3a5" stroke-width="4"/>
+  <path d="m55 80 12 6m-5-14 12 6m-4 27 11 6m-1-31 11 6" stroke="#9c5839" stroke-linecap="round" stroke-width="4"/>
+  <path d="m108 84 26-8m-20 21 17-1" stroke="#9dd8ce" stroke-linecap="round" stroke-width="3" stroke-dasharray="5 8"/>
+</svg>
