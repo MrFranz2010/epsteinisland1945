@@ -15,7 +15,7 @@ Catalogo statico multigioco pubblicabile su Netlify o GitHub Pages, senza framew
 - `netlify.toml`: pubblicazione della sola cartella `public` su Netlify.
 - `.github/workflows/pages.yml`: pubblicazione automatica della cartella statica su GitHub Pages quando si aggiorna `main`.
 
-Il catalogo si modifica nei file del progetto: non ci sono pannelli admin o registrazioni. Le sole funzioni serverless aggiunte gestiscono lobby e tempi di PolyTrack tramite Netlify Blobs; il resto del catalogo rimane statico. GitHub Pages ospita il sito statico, ma non esegue funzioni serverless: le lobby PolyTrack sono disabilitate lì, mentre profili e salvataggi locali continuano a funzionare.
+Il catalogo si modifica nei file del progetto: non ci sono pannelli admin o registrazioni. Le sole funzioni serverless aggiunte gestiscono lobby e tempi di PolyTrack tramite Netlify Blobs; il resto del catalogo rimane statico. Alcuni giochi possono essere presentati tramite embed esterni autorizzati, attribuiti ai rispettivi autori. GitHub Pages ospita il sito statico, ma non esegue funzioni serverless: le lobby PolyTrack sono disabilitate lì, mentre profili e salvataggi locali continuano a funzionare.
 
 ## Aggiungere un gioco
 
@@ -44,6 +44,8 @@ Il catalogo si modifica nei file del progetto: non ci sono pannelli admin o regi
 5. Pubblica le modifiche. Il nuovo gioco compare automaticamente nel catalogo, nel filtro categorie e nei collegamenti alle altre pagine di gioco. Il suo indirizzo è `<percorso-del-sito>/giochi/nuovo-gioco/`.
 
 `cover`, `coverAlt`, `version`, `notes`, `credits` e `authorUrl` sono facoltativi. `entry` deve puntare a un documento HTML sotto `/builds/` sullo stesso sito. Non aggiungere URL di giochi esterni come destinazione del player.
+
+Per un gioco distribuito tramite un embed esterno autorizzato, aggiungi comunque la voce a `games.js` e crea una pagina dedicata con il codice embed fornito dalla piattaforma. Mantieni attribuzione e collegamento all’autore; non presentare l’embed come una build ospitata localmente.
 
 ## Pubblicare su GitHub Pages
 

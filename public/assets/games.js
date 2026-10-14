@@ -1,5 +1,13 @@
 export const games = [
   {
+    slug: 'gdweb-plus',
+    title: 'GDWeb+ Mod',
+    category: 'Arcade',
+    description: 'Gioca a GDWeb+ Mod, una mod di Geometry Dash creata da Lollipop.',
+    credits: 'Lollipop Mod | GDWeb+ Mod di Lollipop. Embed itch.io autorizzato dal curatore del catalogo.',
+    authorUrl: 'https://theblehlollipop.itch.io/gdweb',
+  },
+  {
     slug: 'polytrack',
     title: 'PolyTrack',
     category: 'Racing',
