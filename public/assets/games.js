@@ -4,6 +4,8 @@ export const games = [
     title: 'GDWeb+ Mod',
     category: 'Arcade',
     description: 'Gioca a GDWeb+ Mod, una mod di Geometry Dash creata da Lollipop.',
+    cover: 'https://img.itch.zone/aW1nLzI2NjkyMTgxLnBuZw==/360x286%23c/763TJr.png',
+    coverAlt: 'Icona di GDWeb+ Mod con il personaggio quadrato giallo del gioco',
     credits: 'Lollipop Mod | GDWeb+ Mod di Lollipop. Embed itch.io autorizzato dal curatore del catalogo.',
     authorUrl: 'https://theblehlollipop.itch.io/gdweb',
   },
