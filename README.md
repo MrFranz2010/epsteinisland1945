@@ -10,6 +10,8 @@ Catalogo statico multigioco pubblicabile su Netlify o GitHub Pages, senza framew
 - `public/assets/fullscreen.js`: schermo intero con fallback per browser non compatibili.
 - `public/giochi/polytrack/index.html`: pagina di PolyTrack e modello per nuove pagine.
 - `public/builds/polytrack-0.5.2/`: build di PolyTrack usata dalla pagina; include un evento minimo per inviare alla lobby il tempo di arrivo.
+- `public/builds/hexgl/`: build HexGL con licenza MIT; conserva licenze e attribuzioni della build, inclusi i crediti audio.
+- `public/builds/magic-maze-web/`: port HTML5 di Magic Maze Web con licenza MIT; conserva la licenza del port e quella del font Fraktur Modern. Gli archivi DOS originali non sono inclusi.
 - `public/builds/classic-games.css`: stile condiviso dei classici originali Snake, Pong, Breakout, 2048 e Campo minato, ospitati localmente.
 - `public/builds/`: build autorizzate dei giochi open source APEX FORMULA, Voxel Musou, K8s Games, VIM Master e Racing JS. Ogni build conserva le proprie licenze e attribuzioni.
 - `netlify.toml`: pubblicazione della sola cartella `public` su Netlify.
@@ -62,6 +64,8 @@ La build di PolyTrack è una versione non ufficiale: le classifiche e i ghost or
 Snake, Pong, Breakout, 2048 e Campo minato sono implementazioni originali delle regole dei rispettivi classici. Le build sono incluse nel sito, non caricano risorse di terze parti e funzionano senza connessione esterna.
 
 APEX FORMULA, Voxel Musou, K8s Games, VIM Master e Racing JS sono giochi di altri autori, integrati da build locali secondo le licenze incluse nelle rispettive cartelle `public/builds/`. K8s Games carica Three.js, Tailwind e i font da CDN. Racing JS include sorgenti e risorse con licenza AGPL-3.0-or-later e le licenze dei componenti terzi; la classifica online originale non è inclusa. APEX FORMULA, Voxel Musou e Racing JS richiedono WebGL.
+
+HexGL di Thibaut Despoulain e Magic Maze Web di Daniel Dahl sono port HTML5 open source ospitati localmente; mantieni le licenze e le attribuzioni incluse nelle rispettive cartelle. Magic Maze Web usa il font Fraktur Modern, distribuito con la propria licenza.
 
 ## Lobby multiplayer di PolyTrack
 

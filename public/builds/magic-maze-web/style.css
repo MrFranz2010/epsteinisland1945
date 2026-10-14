@@ -1,0 +1,28 @@
+@font-face {
+  font-family: 'FrakturModern';
+  src: url('./assets/fraktmod.ttf') format('truetype');
+  font-display: block;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #000;
+  color: #ccc;
+  font-family: 'FrakturModern', serif;
+  overflow: hidden;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+#game {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #000;
+}
