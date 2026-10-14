@@ -4,7 +4,7 @@ Catalogo statico multigioco pubblicabile su Netlify o GitHub Pages, senza framew
 
 ## Struttura
 
-- `public/index.html`: home con novità, giochi aperti di recente, preferiti e filtri in una barra laterale adattiva.
+- `public/index.html`: home con giochi aperti di recente, preferiti e filtri in una barra laterale adattiva.
 - `public/assets/games.js`: definizioni dei giochi, parte del codice del sito.
 - `public/assets/player.js`: player condiviso, caricamento, riprova e crediti.
 - `public/assets/fullscreen.js`: schermo intero con fallback per browser non compatibili.
@@ -23,7 +23,7 @@ Il catalogo si modifica nei file del progetto: non ci sono pannelli admin o regi
 
 La home permette di filtrare i giochi per categoria, modalità di comando (touch, tastiera, mouse o controller) e requisiti WebGL/connessione; i filtri sono in una barra laterale stretta su desktop e in un pannello compatto sopra i risultati su tablet e telefoni. Ogni scheda mostra la categoria assegnata, i comandi e i requisiti dichiarati per quel gioco. Le etichette descrivono il supporto verificato del singolo gioco: non tutti i giochi supportano tutti i dispositivi o controller.
 
-Puoi salvare i preferiti con il pulsante a stella e ritrovare gli ultimi sei giochi aperti. Preferiti e cronologia sono salvati nel `localStorage` del browser, restano su quel dispositivo e non richiedono account; cancellando i dati del sito vengono rimossi. La sezione Novità mostra per 30 giorni i giochi che hanno un campo `addedAt` recente.
+Puoi salvare i preferiti con il pulsante a stella e ritrovare gli ultimi sei giochi aperti. Preferiti e cronologia sono salvati nel `localStorage` del browser, restano su quel dispositivo e non richiedono account; cancellando i dati del sito vengono rimossi.
 
 ## Aggiungere un gioco
 
@@ -44,7 +44,6 @@ Puoi salvare i preferiti con il pulsante a stella e ritrovare gli ultimi sei gio
   author: 'Nome autore',
   inputs: ['keyboard', 'touch'],
   requirements: ['webgl', 'internet'],
-  addedAt: '2026-10-14',
   controls: ['Frecce: movimento.', 'Spazio: azione.'],
   notes: 'Requisiti e consigli specifici per questa build.',
   credits: 'Nome dell’autore e condizioni di utilizzo.',
@@ -55,7 +54,7 @@ Puoi salvare i preferiti con il pulsante a stella e ritrovare gli ultimi sei gio
 4. Copia `public/giochi/polytrack/index.html` in `public/giochi/nuovo-gioco/index.html`. Cambia `data-game="polytrack"` in `data-game="nuovo-gioco"`. Aggiorna anche il titolo HTML, la descrizione e i testi iniziali di categoria, titolo e introduzione, che vengono poi valorizzati dal player condiviso.
 5. Pubblica le modifiche. Il nuovo gioco compare automaticamente nel catalogo, nel filtro categorie e nei collegamenti alle altre pagine di gioco. Il suo indirizzo è `<percorso-del-sito>/giochi/nuovo-gioco/`.
 
-`cover`, `coverAlt`, `version`, `notes`, `credits`, `author`, `authorUrl` e `addedAt` sono facoltativi. `inputs` elenca solo i comandi supportati (`touch`, `keyboard`, `mouse`, `controller`); `requirements` usa `webgl` e/o `internet` quando necessari. Mantieni queste indicazioni accurate per la build incorporata. `addedAt` usa il formato `YYYY-MM-DD` e fa comparire il gioco in Novità per 30 giorni. `entry` deve puntare a un documento HTML sotto `/builds/` sullo stesso sito. Non aggiungere URL di giochi esterni come destinazione del player.
+`cover`, `coverAlt`, `version`, `notes`, `credits`, `author` e `authorUrl` sono facoltativi. `inputs` elenca solo i comandi supportati (`touch`, `keyboard`, `mouse`, `controller`); `requirements` usa `webgl` e/o `internet` quando necessari. Mantieni queste indicazioni accurate per la build incorporata. `entry` deve puntare a un documento HTML sotto `/builds/` sullo stesso sito. Non aggiungere URL di giochi esterni come destinazione del player.
 
 Per un gioco distribuito tramite un embed esterno autorizzato, aggiungi comunque la voce a `games.js` e crea una pagina dedicata con il codice embed fornito dalla piattaforma. Mantieni attribuzione e collegamento all’autore; non presentare l’embed come una build ospitata localmente.
 

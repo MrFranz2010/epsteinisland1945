@@ -9,7 +9,6 @@ export const games = [
     author: 'Lollipop',
     inputs: ['touch', 'keyboard'],
     requirements: ['internet'],
-    addedAt: '2026-10-14',
     credits: 'Lollipop Mod | GDWeb+ Mod di Lollipop. Embed itch.io autorizzato dal curatore del catalogo.',
     authorUrl: 'https://theblehlollipop.itch.io/gdweb',
   },
@@ -46,7 +45,6 @@ export const games = [
     author: 'Thibaut Despoulain (BKcore)',
     inputs: ['touch', 'keyboard', 'controller'],
     requirements: ['webgl'],
-    addedAt: '2026-10-14',
     controls: [
       'Frecce: accelera, frena e sterza.',
       'Q/A e D/E: usa i controlli aggiuntivi della nave.',
@@ -67,7 +65,6 @@ export const games = [
     author: 'Daniel Dahl',
     inputs: ['keyboard'],
     requirements: [],
-    addedAt: '2026-10-14',
     controls: [
       'Frecce: muovi il mago.',
       'Ctrl: lancia un incantesimo. Alt: cambia incantesimo.',
@@ -88,7 +85,6 @@ export const games = [
     author: 'Lightning',
     inputs: ['keyboard', 'controller'],
     requirements: ['internet', 'webgl'],
-    addedAt: '2026-10-14',
     controls: [
       'Supporta tastiera e controller.',
       'Controller: thrust, yaw, pitch e roll.',

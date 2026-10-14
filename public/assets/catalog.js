@@ -8,8 +8,6 @@ const filterRequirement = document.getElementById('filterRequirement');
 const filterFavorites = document.getElementById('filterFavorites');
 const gameCount = document.getElementById('gameCount');
 const emptyState = document.getElementById('emptyState');
-const newGames = document.getElementById('newGames');
-const noNews = document.getElementById('noNews');
 const recentSection = document.getElementById('recentSection');
 const recentGames = document.getElementById('recentGames');
 const favoriteGames = document.getElementById('favoriteGames');
@@ -20,7 +18,6 @@ const storageKeys = {
   favorites: 'epstein-island:favorites',
   recent: 'epstein-island:recent',
 };
-const newsWindow = 30 * 24 * 60 * 60 * 1000;
 const gameBySlug = new Map(games.map((game) => [game.slug, game]));
 const inputLabels = {
   touch: 'Touch',
@@ -103,10 +100,6 @@ function makeTag(text, className = '') {
   return tag;
 }
 
-function isNew(game) {
-  return game.addedAt && Date.parse(game.addedAt) >= Date.now() - newsWindow;
-}
-
 function createCard(game) {
   const card = document.createElement('article');
   card.className = 'game-card';
@@ -161,8 +154,6 @@ function createCard(game) {
   for (const requirement of game.requirements) {
     tags.append(makeTag(`Richiede ${requirementLabels[requirement] || requirement}`, 'requirement-tag'));
   }
-  if (isNew(game)) tags.append(makeTag('Novità', 'new-tag'));
-
   const controls = document.createElement('p');
   controls.className = 'game-card-controls';
   controls.textContent = game.controls?.slice(0, 2).join(' ');
@@ -223,14 +214,6 @@ function renderPersonalLists() {
   renderList(recentGames, recentList);
 }
 
-function renderNews() {
-  const latestGames = games
-    .filter(isNew)
-    .sort((a, b) => b.addedAt.localeCompare(a.addedAt));
-  renderList(newGames, latestGames);
-  noNews.hidden = latestGames.length > 0;
-}
-
 searchGames.addEventListener('input', renderGames);
 filterCategory.addEventListener('change', renderGames);
 filterInput.addEventListener('change', renderGames);
@@ -245,6 +228,5 @@ window.addEventListener('storage', (event) => {
 });
 
 loadSavedState();
-renderNews();
 renderPersonalLists();
 renderGames();
