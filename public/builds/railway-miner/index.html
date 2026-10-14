@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101715">
+  <title>Railway Miner</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: system-ui, sans-serif;
+      color: #edf3e7;
+      background: #101715;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; padding: clamp(12px, 3vw, 28px); background: radial-gradient(ellipse at 50% 0, #24372a, #101715 72%); }
+    main { width: min(100%, 900px); margin: auto; }
+    h1 { margin: 0; font-size: clamp(1.6rem, 5vw, 2.4rem); letter-spacing: .02em; }
+    .intro { margin-bottom: 16px; }
+    .intro p { margin: 5px 0 0; color: #b6c5b2; line-height: 1.5; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+    .stat { padding: 10px 13px; border: 1px solid #34483a; border-radius: 12px; background: #18231d; }
+    .stat span { display: block; color: #aab9a8; font-size: .82rem; }
+    .stat strong { display: block; margin-top: 2px; color: #d8f1c0; font-size: clamp(1.05rem, 3.5vw, 1.4rem); font-variant-numeric: tabular-nums; }
+    canvas { display: block; width: 100%; aspect-ratio: 900 / 560; border: 1px solid #405443; border-radius: 14px; background: #18231d; }
+    .actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+    button { min-height: 54px; padding: 9px 11px; border: 1px solid #4d654a; border-radius: 10px; background: #263827; color: #f1f6eb; font: inherit; font-weight: 750; cursor: pointer; touch-action: manipulation; }
+    button:hover:not(:disabled), button:focus-visible { border-color: #a8d86e; outline: 2px solid #a8d86e; outline-offset: 2px; }
+    button.primary { background: #4b773d; }
+    button:disabled { opacity: .47; cursor: not-allowed; }
+    button span { display: block; margin-top: 2px; color: #c3d0ba; font-size: .77rem; font-weight: 500; }
+    .message { min-height: 1.5em; margin: 12px 2px 0; color: #d3e7bd; line-height: 1.45; }
+    .hint { margin: 6px 2px 0; color: #99a998; font-size: .84rem; line-height: 1.5; }
+    @media (max-width: 600px) {
+      .stats { gap: 6px; }
+      .stat { padding: 8px; }
+      .actions { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="intro">
+      <h1>Railway Miner</h1>
+      <p>Il trenino scava da solo: raccogli minerali, vendili in stazione e costruisci una ferrovia sempre più grande.</p>
+    </header>
+    <section class="stats" aria-label="Stato della ferrovia">
+      <div class="stat"><span>Monete</span><strong id="cash">0</strong></div>
+      <div class="stat"><span>Carico</span><strong id="cargo">0 / 8</strong></div>
+      <div class="stat"><span>Ferrovia</span><strong id="route">Tratta 1</strong></div>
+    </section>
+    <canvas id="railway" aria-label="Trenino che raccoglie minerali lungo la ferrovia"></canvas>
+    <div class="actions" aria-label="Azioni della ferrovia">
+      <button class="primary" id="sell" type="button">Vendi carico<span id="sellValue">Alla stazione automatica</span></button>
+      <button id="capacity" type="button">Aggiungi vagone<span></span></button>
+      <button id="speed" type="button">Migliora locomotiva<span></span></button>
+      <button id="track" type="button">Espandi ferrovia<span></span></button>
+    </div>
+    <p class="message" id="message" role="status" aria-live="polite">La locomotiva è partita. I minerali vicini ai binari vengono raccolti automaticamente.</p>
+    <p class="hint">Tasti 1–4: vendi, vagone, locomotiva, ferrovia. I progressi restano salvati in questo browser.</p>
+  </main>
+  <script type="module" src="./game.js"></script>
+</body>
+</html>

@@ -14,6 +14,8 @@ Catalogo statico multigioco pubblicabile su Netlify o GitHub Pages, senza framew
 - `public/builds/magic-maze-web/`: port HTML5 di Magic Maze Web con licenza MIT; conserva la licenza del port e quella del font Fraktur Modern. Gli archivi DOS originali non sono inclusi.
 - `public/builds/classic-games.css`: stile condiviso dei classici originali Snake, Pong, Breakout, 2048 e Campo minato, ospitati localmente.
 - `public/builds/`: build autorizzate dei giochi open source APEX FORMULA, Voxel Musou, K8s Games, VIM Master e Racing JS. Ogni build conserva le proprie licenze e attribuzioni.
+- `public/builds/railway-miner/`: gioco incrementale originale Railway Miner, con salvataggio locale e senza dipendenze esterne.
+- `public/builds/plants-vs-zombies/`: pagina wrapper per incorporare il port PvZ Portable ospitato da Retro Games Center; il catalogo non include file del gioco.
 - `netlify.toml`: pubblicazione della sola cartella `public` su Netlify.
 - `.github/workflows/pages.yml`: pubblicazione automatica della cartella statica su GitHub Pages quando si aggiorna `main`.
 
@@ -71,6 +73,10 @@ Per testare il sito statico, servi `public/` con un server HTTP e verifica catal
 La build di PolyTrack è una versione non ufficiale: le classifiche e i ghost originali non sono disponibili. Il supporto mobile e ai controller dipende dalla build. Conserva i crediti e i collegamenti degli autori e pubblica soltanto giochi per cui hai i necessari diritti.
 
 Snake, Pong, Breakout, 2048 e Campo minato sono implementazioni originali delle regole dei rispettivi classici. Le build sono incluse nel sito, non caricano risorse di terze parti e funzionano senza connessione esterna.
+
+Railway Miner è un gioco incrementale originale per giocatore singolo: il treno raccoglie minerali in automatico, vende il carico in stazione e usa i ricavi per acquistare potenziamenti. La build usa grafica Canvas e salva i progressi nel browser; non richiede connessione.
+
+Plants vs. Zombies — PvZ Portable viene caricato tramite iframe da Retro Games Center e richiede una connessione. Il catalogo non ospita né fornisce le risorse di Plants vs. Zombies; il port può chiedere all'utente di importare un archivio ZIP dal proprio dispositivo. Usa soltanto file che possiedi e che sei autorizzato a utilizzare.
 
 APEX FORMULA, Voxel Musou, K8s Games, VIM Master e Racing JS sono giochi di altri autori, integrati da build locali secondo le licenze incluse nelle rispettive cartelle `public/builds/`. K8s Games carica Three.js, Tailwind e i font da CDN. Racing JS include sorgenti e risorse con licenza AGPL-3.0-or-later e le licenze dei componenti terzi; la classifica online originale non è inclusa. APEX FORMULA, Voxel Musou e Racing JS richiedono WebGL.
 
