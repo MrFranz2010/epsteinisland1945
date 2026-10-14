@@ -33,8 +33,7 @@ export const games = [
     title: 'FPV Freestyle',
     category: 'Simulazione',
     description: 'Volo FPV libero con controller, registrazione dei voli e multiplayer.',
-    externalUrl: 'https://lightning8113.itch.io/fpv-freestyle',
-    cover: 'https://img.itch.zone/aW1nLzE5NDcwOTQ3LnBuZw==/original/TOb1PK.png',
+    cover: '/assets/icons/fpv-freestyle.png',
     coverAlt: 'Drone FPV in volo verso una struttura nel paesaggio',
     controls: [
       'Supporta tastiera e controller.',
@@ -42,7 +41,7 @@ export const games = [
       'Premi Q per attivare o disattivare il multiplayer.',
     ],
     notes: 'Gioco HTML5 ospitato su itch.io. Supporta tastiera, controller e multiplayer; la mappa mostrata è un’area aperta con strutture, non una città densa.',
-    credits: 'FPV Freestyle è sviluppato da Lightning e viene eseguito su itch.io; la build non è ospitata localmente.',
+    credits: 'FPV Freestyle di Lightning, eseguito nel player HTML5 di itch.io. Hosting non ufficiale.',
     authorUrl: 'https://lightning8113.itch.io/fpv-freestyle',
   },
   {
