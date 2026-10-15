@@ -431,6 +431,17 @@ function parseSpotifyTrackRows(value) {
 }
 
 function parseSpotifyCsv(value) {
+  const firstLine = value.split(/\r?\n/, 1)[0] || "";
+  const delimiterCounts = [",", ";", "\t"].map((delimiter) => {
+    let count = 0;
+    let quoted = false;
+    for (const character of firstLine) {
+      if (character === '"') quoted = !quoted;
+      else if (character === delimiter && !quoted) count += 1;
+    }
+    return { delimiter, count };
+  });
+  const delimiter = delimiterCounts.sort((left, right) => right.count - left.count)[0].delimiter;
   const rows = [];
   let row = [];
   let field = "";
@@ -445,7 +456,7 @@ function parseSpotifyCsv(value) {
       } else {
         insideQuotes = !insideQuotes;
       }
-    } else if (character === "," && !insideQuotes) {
+    } else if (character === delimiter && !insideQuotes) {
       row.push(field);
       field = "";
     } else if ((character === "\n" || character === "\r") && !insideQuotes) {
@@ -462,14 +473,17 @@ function parseSpotifyCsv(value) {
   if (row.some((cell) => cell.trim())) rows.push(row);
   if (rows.length < 2) return [];
 
-  const headers = rows[0].map((header) => header.trim().toLocaleLowerCase());
-  const titleIndex = headers.findIndex((header) => ["track name", "track", "title", "titolo"].includes(header));
-  const artistIndex = headers.findIndex((header) => ["artist name(s)", "artist names", "artists", "artist", "artista"].includes(header));
-  if (titleIndex < 0) return parseSpotifyTrackRows(value);
+  const headers = rows[0].map((header) => header.replace(/^\uFEFF/, "").trim().toLocaleLowerCase().replace(/[_\s]+/g, " "));
+  const titleIndex = headers.findIndex((header) => /^(track|song|title|titolo)( name)?$/.test(header));
+  const artistIndex = headers.findIndex((header) => /^artists?( name)?(\(s\))?$/.test(header) || header === "artist name(s)");
+  const hasHeader = titleIndex >= 0;
+  const dataRows = hasHeader ? rows.slice(1) : rows;
+  const resolvedTitleIndex = hasHeader ? titleIndex : 0;
+  const resolvedArtistIndex = hasHeader ? artistIndex : 1;
 
-  return rows.slice(1).map((cells) => ({
-    title: (cells[titleIndex] || "").trim(),
-    artist: artistIndex >= 0 ? (cells[artistIndex] || "").trim() : "",
+  return dataRows.map((cells) => ({
+    title: (cells[resolvedTitleIndex] || "").replace(/^\uFEFF/, "").trim(),
+    artist: resolvedArtistIndex >= 0 ? (cells[resolvedArtistIndex] || "").trim() : "",
   })).filter((track) => track.title);
 }
 
@@ -696,7 +710,10 @@ spotifyConvertForm.addEventListener("submit", (event) => {
     return;
   }
   if (file) {
-    file.text().then((contents) => convertSpotifyPlaylist(spotifyConvertUrl.value, spotifyTrackList.value, contents));
+    setConversionStatus("Leggo il CSV…");
+    file.text()
+      .then((contents) => convertSpotifyPlaylist(spotifyConvertUrl.value, spotifyTrackList.value, contents))
+      .catch(() => setConversionStatus("Non riesco a leggere il file. Prova a esportarlo di nuovo in formato CSV.", true));
   } else {
     convertSpotifyPlaylist(spotifyConvertUrl.value, spotifyTrackList.value);
   }
