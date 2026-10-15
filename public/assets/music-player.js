@@ -27,6 +27,7 @@ const spotifyStatus = document.querySelector("#spotifyStatus");
 const spotifyConvertForm = document.querySelector("#spotifyConvertForm");
 const spotifyConvertUrl = document.querySelector("#spotifyConvertUrl");
 const spotifyTrackList = document.querySelector("#spotifyTrackList");
+const spotifyCsvInput = document.querySelector("#spotifyCsvFile");
 const spotifyConvertStatus = document.querySelector("#spotifyConvertStatus");
 const queueControls = document.querySelector("#musicQueueControls");
 const queuePosition = document.querySelector("#queuePosition");
@@ -429,21 +430,64 @@ function parseSpotifyTrackRows(value) {
   }).filter(Boolean);
 }
 
+function parseSpotifyCsv(value) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let insideQuotes = false;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (character === '"') {
+      if (insideQuotes && value[index + 1] === '"') {
+        field += '"';
+        index += 1;
+      } else {
+        insideQuotes = !insideQuotes;
+      }
+    } else if (character === "," && !insideQuotes) {
+      row.push(field);
+      field = "";
+    } else if ((character === "\n" || character === "\r") && !insideQuotes) {
+      if (character === "\r" && value[index + 1] === "\n") index += 1;
+      row.push(field);
+      if (row.some((cell) => cell.trim())) rows.push(row);
+      row = [];
+      field = "";
+    } else {
+      field += character;
+    }
+  }
+  row.push(field);
+  if (row.some((cell) => cell.trim())) rows.push(row);
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map((header) => header.trim().toLocaleLowerCase());
+  const titleIndex = headers.findIndex((header) => ["track name", "track", "title", "titolo"].includes(header));
+  const artistIndex = headers.findIndex((header) => ["artist name(s)", "artist names", "artists", "artist", "artista"].includes(header));
+  if (titleIndex < 0) return parseSpotifyTrackRows(value);
+
+  return rows.slice(1).map((cells) => ({
+    title: (cells[titleIndex] || "").trim(),
+    artist: artistIndex >= 0 ? (cells[artistIndex] || "").trim() : "",
+  })).filter((track) => track.title);
+}
+
 function setConversionStatus(message, isError = false) {
   spotifyConvertStatus.textContent = message;
   if (isError) spotifyConvertStatus.dataset.error = "true";
   else delete spotifyConvertStatus.dataset.error;
 }
 
-async function convertSpotifyPlaylist(urlValue, trackListValue) {
+async function convertSpotifyPlaylist(urlValue, trackListValue, csvValue = "") {
   const playlistId = parseSpotifyPlaylist(urlValue);
-  const tracks = parseSpotifyTrackRows(trackListValue);
+  const tracks = csvValue ? parseSpotifyCsv(csvValue) : parseSpotifyTrackRows(trackListValue);
   if (!playlistId) {
     setConversionStatus("Inserisci un link condiviso valido a una playlist Spotify.", true);
     return;
   }
   if (!tracks.length) {
-    setConversionStatus("Incolla almeno un brano, uno per riga.", true);
+    setConversionStatus("Il CSV non contiene brani riconoscibili. Usa un CSV Exportify o incolla i brani manualmente.", true);
     return;
   }
   if (tracks.length > 200) {
@@ -514,6 +558,8 @@ async function convertSpotifyPlaylist(urlValue, trackListValue) {
     library.unshift(convertedPlaylist);
     saveLibrary();
     spotifyUrlInput.value = urlValue.trim();
+    spotifyCsvInput.value = "";
+    spotifyTrackList.value = "";
     setConversionStatus(`Convertiti ${matches.length}/${tracks.length} brani.${missing.length ? ` Non trovati: ${missing.join(", ")}.` : ""}`);
     renderLibrary();
   } catch {
@@ -644,7 +690,16 @@ spotifyForm.addEventListener("submit", (event) => {
 
 spotifyConvertForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  convertSpotifyPlaylist(spotifyConvertUrl.value, spotifyTrackList.value);
+  const file = spotifyCsvInput.files[0];
+  if (file && file.size > 2_000_000) {
+    setConversionStatus("Il CSV supera il limite di 2 MB.", true);
+    return;
+  }
+  if (file) {
+    file.text().then((contents) => convertSpotifyPlaylist(spotifyConvertUrl.value, spotifyTrackList.value, contents));
+  } else {
+    convertSpotifyPlaylist(spotifyConvertUrl.value, spotifyTrackList.value);
+  }
 });
 
 previousTrackButton.addEventListener("click", () => playQueueTrack(playbackQueueIndex - 1));

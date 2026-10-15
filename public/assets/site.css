@@ -159,6 +159,7 @@ button:disabled { opacity: .55; cursor: wait; }
 .spotify-converter form { display: grid; gap: 9px; margin-top: 10px; }
 .spotify-converter label { display: grid; gap: 6px; color: var(--muted); font-size: .8rem; }
 .spotify-converter input, .spotify-converter textarea { width: 100%; min-width: 0; margin: 0; }
+.spotify-converter input[type="file"] { padding: 7px; font-size: .78rem; }
 .spotify-converter textarea { min-height: 112px; resize: vertical; line-height: 1.5; }
 .spotify-converter button { justify-self: start; border-color: #1ed760; background: #1ed760; color: #07140b; }
 .music-queue-controls { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 12px; }

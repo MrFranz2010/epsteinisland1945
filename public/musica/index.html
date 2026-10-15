@@ -67,13 +67,16 @@
           <p id="spotifyStatus" role="status" aria-live="polite">Aggiungi una playlist condivisibile per ritrovarla qui.</p>
           <details class="spotify-converter">
             <summary>Converti i brani in una playlist Piped</summary>
-            <p>Spotify non condivide la lista dei brani tramite il solo link. Incolla il link e i brani copiati da Spotify, uno per riga nel formato Titolo - Artista. Fino a 200 brani, convertiti automaticamente a blocchi.</p>
+            <p>Spotify non condivide la lista dei brani tramite il solo link. Puoi caricare un CSV esportato da <a href="https://exportify.net/" target="_blank" rel="noopener noreferrer">Exportify</a>, oppure incollare i brani manualmente. Fino a 200 brani, convertiti automaticamente a blocchi.</p>
             <form id="spotifyConvertForm">
               <label for="spotifyConvertUrl">Link della playlist Spotify
                 <input id="spotifyConvertUrl" type="url" placeholder="https://open.spotify.com/playlist/…" required>
               </label>
-              <label for="spotifyTrackList">Brani da convertire
-                <textarea id="spotifyTrackList" rows="5" placeholder="Titolo del brano - Nome artista&#10;Altro brano - Altro artista" required></textarea>
+              <label for="spotifyCsvFile">File CSV della playlist
+                <input id="spotifyCsvFile" type="file" accept=".csv,text/csv">
+              </label>
+              <label for="spotifyTrackList">Oppure elenco brani, uno per riga
+                <textarea id="spotifyTrackList" rows="4" placeholder="Titolo del brano - Nome artista&#10;Altro brano - Altro artista"></textarea>
               </label>
               <button type="submit">Trova versioni su YouTube</button>
             </form>
