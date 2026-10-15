@@ -2,8 +2,8 @@ const PIPED_APIS = [
   "https://pipedapi.kavin.rocks",
   "https://api.piped.private.coffee",
   "https://pipedapi.adminforge.de",
-  "https://pipedapi.phoenixthrush.com",
 ];
+const COBALT_API = "https://api.cobalt.tools/api/json";
 const LIBRARY_KEY = "epstein-island-music-library-v1";
 
 const searchForm = document.querySelector("#musicSearchForm");
@@ -129,6 +129,27 @@ async function fetchPiped(path) {
     }
   }
   throw lastError || new Error("Piped API non disponibile");
+}
+
+async function fetchCobaltStream(videoId) {
+  const response = await fetch(COBALT_API, {
+    method: "POST",
+    headers: {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      url: `https://www.youtube.com/watch?v=${videoId}`,
+      downloadMode: "audio",
+      audioFormat: "mp3"
+    }),
+    signal: AbortSignal.timeout(15000)
+  });
+  if (!response.ok) throw new Error("Cobalt API HTTP error");
+  const data = await response.json();
+  if (data.url) return data.url;
+  if (data.picker && data.picker.length > 0) return data.picker[0].url;
+  throw new Error("Stream non disponibile tramite Cobalt");
 }
 
 function parseYoutubeLink(value) {
@@ -373,22 +394,16 @@ async function playMediaItem(item) {
   audio.removeAttribute("src");
   playerOpenLink.href = `https://music.youtube.com/watch?v=${encodeURIComponent(item.videoId)}`;
   playerOpenLink.textContent = "Apri YouTube Music ↗";
-  playerNote.textContent = "Audio via Piped. Repeat e shuffle funzionano sulla coda.";
-  playerLoadStatus.textContent = "Carico lo stream audio da Piped…";
+  playerNote.textContent = "Audio via Cobalt. Nessuna pubblicità.";
+  playerLoadStatus.textContent = "Carico lo stream audio tramite Cobalt…";
   playerLoadStatus.hidden = false;
   setStatus(`Carico audio: ${item.title}`);
 
   try {
-    const data = await fetchPiped(`/streams/${encodeURIComponent(item.videoId)}`);
+    const streamUrl = await fetchCobaltStream(item.videoId);
     if (requestId !== playbackRequestId) return;
-    
-    const audioStreams = Array.isArray(data.audioStreams) ? data.audioStreams : [];
-    const stream = audioStreams.find((s) => s.mimeType?.includes("audio/mp4") && s.url)
-      || audioStreams.sort((a, b) => Number(b.bitrate || 0) - Number(a.bitrate || 0))[0];
 
-    if (!stream || !stream.url) throw new Error("Nessuno stream audio disponibile");
-
-    audio.src = stream.url;
+    audio.src = streamUrl;
     audio.load();
     playerLoadStatus.hidden = true;
     try {
@@ -399,7 +414,7 @@ async function playMediaItem(item) {
     }
   } catch (error) {
     if (requestId !== playbackRequestId) return;
-    playerLoadStatus.textContent = "Impossibile recuperare lo stream. Prova il link YouTube Music ↗.";
+    playerLoadStatus.textContent = "Impossibile estrarre lo stream. Prova il link YouTube Music ↗.";
     playerLoadStatus.hidden = false;
     setStatus("Errore durante il caricamento dello stream audio.", true);
   }
@@ -842,119 +857,4 @@ function showSuggestions(values) {
     const option = document.createElement("button");
     option.type = "button";
     option.setAttribute("role", "option");
-    option.textContent = value;
-    option.addEventListener("click", () => {
-      queryInput.value = value;
-      hideSuggestions();
-      performSearch(value);
-    });
-    suggestions.append(option);
-  }
-  suggestions.hidden = suggestions.childElementCount === 0;
-  queryInput.setAttribute("aria-expanded", String(!suggestions.hidden));
-}
-
-searchForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  performSearch(queryInput.value);
-});
-
-spotifyForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  addSpotifyPlaylist(spotifyUrlInput.value);
-});
-
-spotifyConvertForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const file = spotifyCsvInput.files[0];
-  if (file && file.size > 2_000_000) {
-    setConversionStatus("Il CSV supera il limite di 2 MB.", true);
-    return;
-  }
-  if (file) {
-    setConversionStatus("Leggo il CSV…");
-    file.text()
-      .then((contents) => convertSpotifyPlaylist(spotifyConvertUrl.value, spotifyTrackList.value, contents))
-      .catch(() => setConversionStatus("Non riesco a leggere il file. Prova a esportarlo di nuovo in formato CSV.", true));
-  } else {
-    convertSpotifyPlaylist(spotifyConvertUrl.value, spotifyTrackList.value);
-  }
-});
-
-previousTrackButton.addEventListener("click", () => moveInQueue(-1));
-nextTrackButton.addEventListener("click", () => moveInQueue(1));
-
-repeatQueueButton.addEventListener("click", () => {
-  repeatMode = repeatMode === "off" ? "one" : repeatMode === "one" ? "all" : "off";
-  updateQueueControls();
-});
-
-shuffleQueueButton.addEventListener("click", () => {
-  if (playbackQueue.length < 2) return;
-  const currentTrackIndex = playbackOrder[playbackQueueIndex];
-  shuffleEnabled = !shuffleEnabled;
-  if (shuffleEnabled) {
-    shuffleRemainingTracks(playbackQueueIndex);
-    playbackQueueIndex = 0;
-  } else {
-    playbackOrder = playbackQueue.map((_, index) => index);
-    playbackQueueIndex = playbackOrder.indexOf(currentTrackIndex);
-  }
-  updateQueueControls();
-});
-
-queryInput.addEventListener("input", () => {
-  clearTimeout(suggestionTimer);
-  const query = queryInput.value.trim();
-  const requestId = ++suggestionRequest;
-  if (query.length < 2) {
-    hideSuggestions();
-    return;
-  }
-  suggestionTimer = setTimeout(async () => {
-    try {
-      const values = await fetchPiped(`/suggestions?query=${encodeURIComponent(query)}`);
-      if (requestId === suggestionRequest && queryInput.value.trim() === query) {
-        showSuggestions(Array.isArray(values) ? values : []);
-      }
-    } catch {
-      if (requestId === suggestionRequest) hideSuggestions();
-    }
-  }, 240);
-});
-
-queryInput.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") hideSuggestions();
-});
-
-document.addEventListener("click", (event) => {
-  if (!searchForm.contains(event.target)) hideSuggestions();
-});
-
-for (const button of navButtons) {
-  button.addEventListener("click", () => showView(button.dataset.view));
-}
-
-for (const button of filters.querySelectorAll("[data-filter]")) {
-  button.addEventListener("click", () => {
-    searchFilter = button.dataset.filter;
-    showFilters(true);
-    if (currentQuery) performSearch(currentQuery, searchFilter);
-  });
-}
-
-document.querySelector("#quickSearches").addEventListener("click", (event) => {
-  const button = event.target.closest("[data-query]");
-  if (!button) return;
-  queryInput.value = button.dataset.query;
-  performSearch(button.dataset.query, "music_songs");
-});
-
-window.addEventListener("storage", (event) => {
-  if (event.key !== LIBRARY_KEY) return;
-  library = loadLibrary();
-  if (activeView === "library") renderLibrary();
-  else if (activeView === "home") renderHomePlaylists();
-});
-
-showView("home");
+    option.
