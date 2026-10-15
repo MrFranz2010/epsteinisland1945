@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="description" content="Cerca musica, scopri le tendenze e salva brani e playlist.">
+  <title>Musica | Epstein island</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <script type="module" src="../assets/music-player.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../" aria-label="Epstein island, catalogo"><span class="brand-mark" aria-hidden="true">S</span> Epstein island</a>
+    <a class="header-link" href="../">← Tutti i giochi</a>
+  </header>
+  <main class="music-client">
+    <div class="music-topline">
+      <div class="music-branding">
+        <p class="eyebrow">Music</p>
+        <h1 id="musicHeading">Ascolta <span class="accent">quello che vuoi</span></h1>
+      </div>
+      <form class="music-search" id="musicSearchForm" role="search" autocomplete="off">
+        <label class="visually-hidden" for="musicQuery">Cerca brani, artisti e playlist</label>
+        <span class="music-search-icon" aria-hidden="true">⌕</span>
+        <input id="musicQuery" name="q" type="search" placeholder="Cerca brani, artisti e playlist" aria-controls="musicSuggestions" aria-expanded="false">
+        <button type="submit">Cerca</button>
+        <div class="music-suggestions" id="musicSuggestions" role="listbox" hidden></div>
+      </form>
+    </div>
+
+    <div class="music-workspace">
+      <nav class="music-sidebar" aria-label="Navigazione musicale">
+        <div class="music-nav" role="group" aria-label="Sezioni">
+          <button class="music-nav-button is-active" type="button" data-view="home" aria-current="page">Per te</button>
+          <button class="music-nav-button" type="button" data-view="trending">Tendenze</button>
+          <button class="music-nav-button" type="button" data-view="search">Cerca</button>
+          <button class="music-nav-button" type="button" data-view="library">La tua raccolta</button>
+        </div>
+        <section class="music-sidebar-section" aria-labelledby="quickSearchHeading">
+          <h2 id="quickSearchHeading">Scopri</h2>
+          <div class="music-quick-links" id="quickSearches">
+            <button type="button" data-query="hit italiani">Hit italiani</button>
+            <button type="button" data-query="pop internazionale">Pop</button>
+            <button type="button" data-query="lofi chill">Lofi e chill</button>
+            <button type="button" data-query="rock classico">Rock</button>
+          </div>
+        </section>
+      </nav>
+
+      <section class="music-main" aria-labelledby="musicViewTitle">
+        <div class="music-view-heading">
+          <p class="eyebrow" id="musicViewEyebrow">La selezione di oggi</p>
+          <h2 id="musicViewTitle">Per te</h2>
+        </div>
+        <div class="music-filters" id="musicFilters" role="group" aria-label="Tipo di risultati" hidden>
+          <button class="is-active" type="button" data-filter="music_songs" aria-pressed="true">Brani</button>
+          <button type="button" data-filter="music_playlists" aria-pressed="false">Playlist</button>
+        </div>
+        <section class="spotify-import" id="spotifyImport" aria-labelledby="spotifyImportHeading" hidden>
+          <h3 id="spotifyImportHeading">Le tue playlist Spotify</h3>
+          <form id="spotifyForm">
+            <label class="visually-hidden" for="spotifyUrl">Link condiviso della playlist Spotify</label>
+            <input id="spotifyUrl" name="spotifyUrl" type="url" placeholder="https://open.spotify.com/playlist/…" required>
+            <button type="submit">Aggiungi playlist</button>
+          </form>
+          <p id="spotifyStatus" role="status" aria-live="polite">Aggiungi una playlist condivisibile per ritrovarla qui.</p>
+          <details class="spotify-converter">
+            <summary>Converti i brani in una playlist Piped</summary>
+            <p>Spotify non condivide la lista dei brani tramite il solo link. Incolla il link e i brani copiati da Spotify, uno per riga nel formato Titolo - Artista. Fino a 200 brani, convertiti automaticamente a blocchi.</p>
+            <form id="spotifyConvertForm">
+              <label for="spotifyConvertUrl">Link della playlist Spotify
+                <input id="spotifyConvertUrl" type="url" placeholder="https://open.spotify.com/playlist/…" required>
+              </label>
+              <label for="spotifyTrackList">Brani da convertire
+                <textarea id="spotifyTrackList" rows="5" placeholder="Titolo del brano - Nome artista&#10;Altro brano - Altro artista" required></textarea>
+              </label>
+              <button type="submit">Trova versioni su YouTube</button>
+            </form>
+            <p id="spotifyConvertStatus" role="status" aria-live="polite"></p>
+          </details>
+        </section>
+        <p class="music-status" id="musicStatus" role="status" aria-live="polite">Carico le tendenze…</p>
+        <div class="music-results" id="musicResults"></div>
+      </section>
+
+      <aside class="music-player-panel" aria-labelledby="playerHeading">
+        <div class="music-player-heading">
+          <div>
+            <p class="eyebrow">In ascolto</p>
+            <h2 id="playerHeading">Scegli un brano</h2>
+          </div>
+          <a class="music-open-link" id="playerOpenLink" href="https://piped.video/" target="_blank" rel="noopener noreferrer" hidden>Apri ↗</a>
+        </div>
+        <div class="music-player-frame" id="musicStage">
+          <div class="music-player-empty" id="playerPlaceholder">
+            <span aria-hidden="true">♫</span>
+            <p>La musica che cerchi, tutta qui.</p>
+          </div>
+          <iframe id="musicFrame" title="Player musicale" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen hidden></iframe>
+        </div>
+        <div class="music-queue-controls" id="musicQueueControls" hidden>
+          <button type="button" id="previousTrack" aria-label="Brano precedente">←</button>
+          <span id="queuePosition">1 / 1</span>
+          <button type="button" id="nextTrack" aria-label="Brano successivo">→</button>
+        </div>
+        <p class="music-player-note" id="musicPlayerNote">Player fornito da Piped. La disponibilità dipende dall’istanza esterna.</p>
+      </aside>
+    </div>
+  </main>
+  <footer>Epstein island · Player musicale incorporato</footer>
+</body>
+</html>
