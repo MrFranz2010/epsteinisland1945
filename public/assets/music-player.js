@@ -1,4 +1,9 @@
-const COBALT_API = "https://api.cobalt.tools/api/json";
+const PIPED_APIS = [
+  "https://api.piped.private.coffee",
+  "https://pipedapi.kavin.rocks",
+  "https://pipedapi.adminforge.de",
+];
+const INVIDIOUS_API = "https://invidious.f5.si";
 const LIBRARY_KEY = "epstein-island-music-library-v1";
 
 const searchForm = document.querySelector("#musicSearchForm");
@@ -56,7 +61,12 @@ let playbackRequestId = 0;
 frame.addEventListener("load", () => {
   if (!frame.src.startsWith("https://")) return;
   clearTimeout(playerLoadTimer);
-  playerLoadStatus.hidden = true;
+  if (frame.src.startsWith("https://piped.video/")) {
+    playerLoadStatus.textContent = "Player collegato. Se non parte, usa Apri ↗.";
+    playerLoadStatus.hidden = false;
+  } else {
+    playerLoadStatus.hidden = true;
+  }
 });
 
 audio.addEventListener("ended", () => {
@@ -77,7 +87,7 @@ audio.addEventListener("ended", () => {
 
 audio.addEventListener("error", () => {
   if (audio.hidden) return;
-  playerLoadStatus.textContent = "Lo stream audio non è disponibile. Prova il link Cerca su YouTube ↗.";
+  playerLoadStatus.textContent = "Lo stream audio non è disponibile. Prova il link Apri ↗.";
   playerLoadStatus.hidden = false;
   setStatus("Errore durante il caricamento del brano.", true);
 });
@@ -100,39 +110,65 @@ function saveLibrary() {
 }
 
 function setStatus(message, isError = false) {
-  if (!status) return;
   status.textContent = message;
   if (isError) status.dataset.error = "true";
   else delete status.dataset.error;
 }
 
-async function fetchItunes(term, limit = 20) {
-  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=${limit}`;
-  const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
-  if (!response.ok) throw new Error("iTunes API HTTP Error");
-  const data = await response.json();
-  return data.results || [];
+async function fetchPiped(path) {
+  let lastError;
+  for (const api of PIPED_APIS) {
+    try {
+      const response = await fetch(new URL(path, `${api}/`), {
+        signal: AbortSignal.timeout(12000),
+      });
+      if (!response.ok) throw new Error(`Piped API HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("Piped API non disponibile");
 }
 
-async function fetchCobaltStream(searchQuery) {
-  const response = await fetch(COBALT_API, {
-    method: "POST",
-    headers: {
-      "Accept": "application/json",
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      url: `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`,
-      downloadMode: "audio",
-      audioFormat: "mp3"
-    }),
-    signal: AbortSignal.timeout(15000)
-  });
-  if (!response.ok) throw new Error("Cobalt API HTTP error");
-  const data = await response.json();
-  if (data.url) return data.url;
-  if (data.picker && data.picker.length > 0) return data.picker[0].url;
-  throw new Error("Stream non disponibile tramite Cobalt");
+function parseYoutubeLink(value) {
+  const trimmedValue = value.trim();
+  if (/^[A-Za-z0-9_-]{11}$/.test(trimmedValue)) {
+    return { videoId: trimmedValue, playlistId: "" };
+  }
+
+  let url;
+  try {
+    url = new URL(trimmedValue);
+  } catch {
+    return null;
+  }
+
+  const allowedHosts = new Set([
+    "youtube.com",
+    "www.youtube.com",
+    "m.youtube.com",
+    "music.youtube.com",
+    "youtu.be",
+    "www.youtu.be",
+  ]);
+  if (!allowedHosts.has(url.hostname)) return null;
+
+  let videoId = url.searchParams.get("v") || "";
+  if (url.hostname.endsWith("youtu.be")) {
+    videoId = url.pathname.split("/").filter(Boolean)[0] || "";
+  } else if (!videoId) {
+    const pathParts = url.pathname.split("/").filter(Boolean);
+    if (["embed", "shorts", "live"].includes(pathParts[0])) {
+      videoId = pathParts[1] || "";
+    }
+  }
+
+  const playlistId = url.searchParams.get("list") || "";
+  if (videoId && !/^[A-Za-z0-9_-]{11}$/.test(videoId)) return null;
+  if (playlistId && !/^[A-Za-z0-9_-]{10,}$/.test(playlistId)) return null;
+  if (!videoId && !playlistId) return null;
+  return { videoId, playlistId };
 }
 
 function parseSpotifyPlaylist(value) {
@@ -149,22 +185,38 @@ function parseSpotifyPlaylist(value) {
   return /^[A-Za-z0-9]{22}$/.test(playlistId) ? playlistId : null;
 }
 
-function normalizeItunesItem(item) {
-  if (!item || !item.trackId) return null;
-  const title = item.trackName || "Senza titolo";
-  const artist = item.artistName || "Artista sconosciuto";
-  const thumbnail = item.artworkUrl100 ? item.artworkUrl100.replace("100x100bb", "300x300bb") : "";
+function normalizeItem(item) {
+  if (!item || typeof item.url !== "string") return null;
+  let mediaUrl;
+  try {
+    mediaUrl = new URL(item.url, "https://youtube.com");
+  } catch {
+    return null;
+  }
+  const media = parseYoutubeLink(mediaUrl.href);
+  if (!media) return null;
+
+  const isPlaylist = item.type === "playlist" || mediaUrl.pathname === "/playlist";
+  const id = isPlaylist ? media.playlistId : media.videoId;
+  if (!id) return null;
+
+  let thumbnail = "";
+  try {
+    const candidate = new URL(item.thumbnail);
+    if (candidate.protocol === "https:") thumbnail = candidate.href;
+  } catch {
+    thumbnail = "";
+  }
 
   return {
-    id: `itunes-${item.trackId}`,
-    videoId: "",
-    playlistId: "",
-    query: `${artist} - ${title}`,
-    type: "stream",
-    provider: "itunes",
-    title: title,
-    uploader: artist,
-    thumbnail: thumbnail,
+    id,
+    videoId: isPlaylist ? "" : media.videoId,
+    playlistId: isPlaylist ? media.playlistId : "",
+    type: isPlaylist ? "playlist" : "stream",
+    provider: "piped",
+    title: item.title || item.name || "Senza titolo",
+    uploader: item.uploaderName || item.uploader || "YouTube",
+    thumbnail,
   };
 }
 
@@ -187,7 +239,6 @@ function updateNavigation(view) {
 }
 
 function showFilters(visible) {
-  if (!filters) return;
   filters.hidden = !visible;
   for (const button of filters.querySelectorAll("[data-filter]")) {
     const selected = button.dataset.filter === searchFilter;
@@ -197,7 +248,6 @@ function showFilters(visible) {
 }
 
 function updateQueueControls() {
-  if (!queueControls) return;
   const hasQueue = playbackQueue.length > 0;
   queueControls.hidden = !hasQueue;
   if (!hasQueue) return;
@@ -269,11 +319,12 @@ function moveInQueue(direction) {
 
 async function playMediaItem(item) {
   const isSpotify = item.provider === "spotify";
-  const useIframe = isSpotify;
+  const isYoutubePlaylist = !isSpotify && !item.videoId && item.playlistId;
+  const useIframe = isSpotify || isYoutubePlaylist;
   const requestId = ++playbackRequestId;
   clearTimeout(playerLoadTimer);
   playerHeading.textContent = item.title;
-  playerArtist.textContent = item.uploader || (isSpotify ? "Spotify" : "Musica");
+  playerArtist.textContent = item.uploader || (isSpotify ? "Spotify" : "YouTube Music");
   playerArtwork.hidden = useIframe || !item.thumbnail;
   if (!playerArtwork.hidden) playerArtwork.src = item.thumbnail;
   playerPlaceholder.hidden = useIframe || Boolean(item.thumbnail);
@@ -282,18 +333,35 @@ async function playMediaItem(item) {
   playerPanel.classList.toggle("is-audio", !useIframe);
 
   if (useIframe) {
-    const playerUrl = new URL(`/embed/playlist/${encodeURIComponent(item.id)}`, "https://open.spotify.com/");
+    const playerUrl = isSpotify
+      ? new URL(`/embed/playlist/${encodeURIComponent(item.id)}`, "https://open.spotify.com/")
+      : new URL("/playlist", "https://piped.video/");
+    if (!isSpotify && item.playlistId) playerUrl.searchParams.set("list", item.playlistId);
+    if (!isSpotify) playerUrl.searchParams.set("instance", PIPED_APIS[0]);
     audio.pause();
     audio.removeAttribute("src");
     audio.hidden = true;
     frame.src = playerUrl.href;
     frame.hidden = false;
-    frame.title = `Player Spotify: ${item.title}`;
-    playerOpenLink.href = `https://open.spotify.com/playlist/${encodeURIComponent(item.id)}`;
-    playerOpenLink.textContent = "Apri Spotify ↗";
-    playerNote.textContent = "Player ufficiale Spotify. La riproduzione può richiedere l’accesso a Spotify.";
-    playerLoadStatus.hidden = true;
-    setStatus(`Carico Spotify: ${item.title}`);
+    frame.title = `Player ${isSpotify ? "Spotify" : "Piped"}: ${item.title}`;
+    playerOpenLink.href = isSpotify
+      ? `https://open.spotify.com/playlist/${encodeURIComponent(item.id)}`
+      : playerUrl.href;
+    playerOpenLink.textContent = isSpotify ? "Apri Spotify ↗" : "Apri ↗";
+    playerNote.textContent = isSpotify
+      ? "Player ufficiale Spotify. La riproduzione può richiedere l’accesso a Spotify."
+      : "Playlist fornita da Piped. Se non si avvia, usa Apri ↗.";
+    playerLoadStatus.hidden = !isYoutubePlaylist;
+    playerLoadStatus.textContent = isYoutubePlaylist ? "Connessione al player Piped…" : "";
+    if (isYoutubePlaylist) {
+      playerLoadTimer = setTimeout(() => {
+        playerLoadStatus.textContent = "Piped non risponde. Prova il link Apri ↗ oppure riprova tra poco.";
+        playerLoadStatus.hidden = false;
+      }, 15000);
+    } else {
+      playerLoadStatus.hidden = true;
+    }
+    setStatus(`Carico ${isSpotify ? "Spotify" : "la playlist"}: ${item.title}`);
     return;
   }
 
@@ -303,19 +371,33 @@ async function playMediaItem(item) {
   audio.hidden = false;
   audio.pause();
   audio.removeAttribute("src");
-  playerOpenLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(item.query || `${item.title}${item.uploader}`)}`;
-  playerOpenLink.textContent = "Cerca su YouTube ↗";
-  playerNote.textContent = "Audio via Cobalt. Senza pubblicità.";
+  playerOpenLink.href = new URL(item.playlistId ? `/playlist?list=${encodeURIComponent(item.playlistId)}` : `/watch?v=${encodeURIComponent(item.videoId)}`, "https://piped.video/").href;
+  playerOpenLink.href += `${playerOpenLink.href.includes("?") ? "&" : "?"}instance=${encodeURIComponent(PIPED_APIS[0])}`;
+  playerOpenLink.textContent = "Apri su Piped ↗";
+  playerNote.textContent = "Audio via Invidious. Repeat e shuffle funzionano sulla coda.";
   playerLoadStatus.textContent = "Carico lo stream audio…";
   playerLoadStatus.hidden = false;
   setStatus(`Carico audio: ${item.title}`);
 
   try {
-    const searchQuery = item.query || `${item.title} ${item.uploader}`;
-    const streamUrl = await fetchCobaltStream(searchQuery);
+    const response = await fetch(`${INVIDIOUS_API}/api/v1/videos/${encodeURIComponent(item.videoId)}?local=false`, {
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => "");
+      if (/LOGIN_REQUIRED|sign in to confirm|not a bot/i.test(errorBody)) throw new Error("LOGIN_REQUIRED");
+      throw new Error(`Invidious API HTTP ${response.status}`);
+    }
+    const data = await response.json();
     if (requestId !== playbackRequestId) return;
+    const upstreamError = [data.error, data.message, data.type].filter((value) => typeof value === "string").join(" ");
+    if (/LOGIN_REQUIRED|sign in to confirm|not a bot/i.test(upstreamError)) throw new Error("LOGIN_REQUIRED");
+    const streams = (data.adaptiveFormats || []).filter((stream) => stream.type?.startsWith("audio/") && stream.url);
+    const stream = streams.find((candidate) => candidate.type.includes("audio/mp4"))
+      || streams.sort((left, right) => Number(right.bitrate) - Number(left.bitrate))[0];
+    if (!stream) throw new Error("Nessuno stream audio disponibile");
 
-    audio.src = streamUrl;
+    audio.src = stream.url;
     audio.load();
     playerLoadStatus.hidden = true;
     try {
@@ -326,9 +408,14 @@ async function playMediaItem(item) {
     }
   } catch (error) {
     if (requestId !== playbackRequestId) return;
-    playerLoadStatus.textContent = "Impossibile estrarre lo stream audio al momento.";
+    const loginRequired = /LOGIN_REQUIRED|sign in to confirm|not a bot/i.test(error.message);
+    playerOpenLink.href = `https://music.youtube.com/watch?v=${encodeURIComponent(item.videoId)}`;
+    playerOpenLink.textContent = "Apri YouTube Music ↗";
+    playerLoadStatus.textContent = loginRequired
+      ? "YouTube ha bloccato la richiesta anonima di Invidious. Prova ad aprire il brano con il tuo account o riprova più tardi."
+      : "Invidious non è raggiungibile. Prova il link YouTube Music o riprova più tardi.";
     playerLoadStatus.hidden = false;
-    setStatus("Errore durante il caricamento dello stream audio.", true);
+    setStatus(loginRequired ? "Accesso anonimo temporaneamente bloccato da YouTube." : "Errore durante il caricamento dello stream audio.", true);
   }
 }
 
@@ -338,3 +425,550 @@ function createCard(item) {
 
   const coverButton = document.createElement("button");
   coverButton.className = "music-card-cover";
+  coverButton.type = "button";
+  coverButton.setAttribute("aria-label", `Riproduci ${item.title}`);
+  if (item.thumbnail) {
+    const image = document.createElement("img");
+    image.src = item.thumbnail;
+    image.alt = "";
+    image.loading = "lazy";
+    coverButton.append(image);
+  }
+  const playMark = document.createElement("span");
+  playMark.setAttribute("aria-hidden", "true");
+  playMark.textContent = "▶";
+  coverButton.append(playMark);
+  coverButton.addEventListener("click", () => playItem(item));
+
+  const body = document.createElement("div");
+  body.className = "music-card-body";
+  const title = document.createElement("div");
+  title.className = "music-card-title";
+  title.textContent = item.title;
+  const meta = document.createElement("p");
+  meta.className = "music-card-meta";
+  meta.textContent = item.type === "converted-playlist"
+    ? `Playlist convertita · ${item.tracks.length} brani`
+    : item.type === "playlist" || item.type === "spotify-playlist"
+      ? `Playlist · ${item.uploader}`
+    : item.uploader;
+
+  const actions = document.createElement("div");
+  actions.className = "music-card-actions";
+  const playButton = document.createElement("button");
+  playButton.type = "button";
+  playButton.textContent = item.type === "converted-playlist" ? "Avvia playlist" : "Riproduci";
+  playButton.addEventListener("click", () => playItem(item));
+  const saveButton = document.createElement("button");
+  saveButton.type = "button";
+  saveButton.className = "music-save-button";
+  saveButton.textContent = isSaved(item) ? "Salvato" : "+ Raccolta";
+  saveButton.setAttribute("aria-pressed", String(isSaved(item)));
+  saveButton.addEventListener("click", () => {
+    toggleSaved(item);
+    const saved = isSaved(item);
+    saveButton.textContent = saved ? "Salvato" : "+ Raccolta";
+    saveButton.setAttribute("aria-pressed", String(saved));
+  });
+  actions.append(playButton, saveButton);
+  body.append(title, meta, actions);
+  card.append(coverButton, body);
+  return card;
+}
+
+function renderItems(items, emptyMessage = "Nessun risultato trovato.", target = results) {
+  target.replaceChildren();
+  if (!items.length) {
+    const empty = document.createElement("p");
+    empty.className = "music-empty";
+    empty.textContent = emptyMessage;
+    target.append(empty);
+    return;
+  }
+  const fragment = document.createDocumentFragment();
+  for (const item of items) fragment.append(createCard(item));
+  target.append(fragment);
+}
+
+function renderHomePlaylists() {
+  const playlists = library.filter((item) => ["playlist", "spotify-playlist", "converted-playlist"].includes(item.type));
+  homePlaylistsSection.hidden = activeView !== "home" || playlists.length === 0;
+  homePlaylistCount.textContent = `${playlists.length} ${playlists.length === 1 ? "playlist" : "playlist"}`;
+  if (playlists.length) renderItems(playlists, "", homePlaylists);
+}
+
+function toggleSaved(item) {
+  const key = itemKey(item);
+  const index = library.findIndex((saved) => itemKey(saved) === key);
+  if (index >= 0) {
+    library.splice(index, 1);
+    setStatus(`Rimosso dalla raccolta: ${item.title}`);
+  } else {
+    library.unshift(item);
+    setStatus(`Aggiunto alla raccolta: ${item.title}`);
+  }
+  saveLibrary();
+  if (activeView === "library") renderLibrary();
+  else if (activeView === "home") renderHomePlaylists();
+}
+
+async function loadTrending() {
+  if (activeView === "home") renderHomePlaylists();
+  else homePlaylistsSection.hidden = true;
+  results.replaceChildren();
+  setStatus("Carico le tendenze…");
+  try {
+    const data = await fetchPiped("/trending?region=IT");
+    const items = (Array.isArray(data) ? data : []).map(normalizeItem).filter(Boolean);
+    renderItems(items, "Al momento non ci sono tendenze disponibili.");
+    setStatus(items.length ? `${items.length} tendenze` : "Nessun risultato disponibile.");
+  } catch {
+    renderItems([], "Le tendenze non sono raggiungibili. Puoi cercare un brano o una playlist.");
+    setStatus("Servizio musicale temporaneamente non disponibile.", true);
+  }
+}
+
+function renderLibrary() {
+  const savedItems = [...library];
+  renderItems(savedItems, "La raccolta è vuota. Salva un brano o una playlist dai risultati.");
+  setStatus(`${savedItems.length} elementi salvati su questo dispositivo`);
+}
+
+function setSpotifyStatus(message, isError = false) {
+  spotifyStatus.textContent = message;
+  if (isError) spotifyStatus.dataset.error = "true";
+  else delete spotifyStatus.dataset.error;
+}
+
+async function addSpotifyPlaylist(value) {
+  const playlistId = parseSpotifyPlaylist(value);
+  if (!playlistId) {
+    setSpotifyStatus("Inserisci un link condiviso a una playlist Spotify.", true);
+    return;
+  }
+
+  const spotifyItem = {
+    id: playlistId,
+    playlistId,
+    videoId: "",
+    type: "spotify-playlist",
+    provider: "spotify",
+    title: "Playlist Spotify",
+    uploader: "Spotify",
+    thumbnail: "",
+  };
+  if (isSaved(spotifyItem)) {
+    setSpotifyStatus("Questa playlist è già nella tua raccolta.");
+    return;
+  }
+
+  const submitButton = spotifyForm.querySelector("button[type='submit']");
+  submitButton.disabled = true;
+  setSpotifyStatus("Recupero la playlist…");
+  try {
+    const metadataUrl = new URL("https://open.spotify.com/oembed");
+    metadataUrl.searchParams.set("url", `https://open.spotify.com/playlist/${playlistId}`);
+    const response = await fetch(metadataUrl, { signal: AbortSignal.timeout(12000) });
+    if (!response.ok) throw new Error(`Spotify oEmbed HTTP ${response.status}`);
+    const metadata = await response.json();
+    spotifyItem.title = metadata.title || spotifyItem.title;
+    spotifyItem.thumbnail = metadata.thumbnail_url || "";
+    library.unshift(spotifyItem);
+    saveLibrary();
+    spotifyUrlInput.value = "";
+    setSpotifyStatus(`Aggiunta: ${spotifyItem.title}`);
+    renderLibrary();
+  } catch {
+    setSpotifyStatus("Playlist non disponibile. Verifica che il link sia condivisibile e riprova.", true);
+  } finally {
+    submitButton.disabled = false;
+  }
+}
+
+function parseSpotifyTrackRows(value) {
+  return value.split(/\r?\n/).map((line) => {
+    const row = line.trim();
+    if (!row) return null;
+
+    const columns = row.split("\t").map((column) => column.trim()).filter(Boolean);
+    let title = columns[0] || "";
+    let artist = columns[1] || "";
+    if (columns.length === 1) {
+      const parts = row.split(/\s+[–—-]\s+/);
+      title = parts[0].trim();
+      artist = parts.slice(1).join(" - ").trim();
+    }
+
+    if (["titolo", "title", "brano", "track"].includes(title.toLocaleLowerCase())) return null;
+    return title ? { title, artist } : null;
+  }).filter(Boolean);
+}
+
+function parseSpotifyCsv(value) {
+  const firstLine = value.split(/\r?\n/, 1)[0] || "";
+  const delimiterCounts = [",", ";", "\t"].map((delimiter) => {
+    let count = 0;
+    let quoted = false;
+    for (const character of firstLine) {
+      if (character === '"') quoted = !quoted;
+      else if (character === delimiter && !quoted) count += 1;
+    }
+    return { delimiter, count };
+  });
+  const delimiter = delimiterCounts.sort((left, right) => right.count - left.count)[0].delimiter;
+  const rows = [];
+  let row = [];
+  let field = "";
+  let insideQuotes = false;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (character === '"') {
+      if (insideQuotes && value[index + 1] === '"') {
+        field += '"';
+        index += 1;
+      } else {
+        insideQuotes = !insideQuotes;
+      }
+    } else if (character === delimiter && !insideQuotes) {
+      row.push(field);
+      field = "";
+    } else if ((character === "\n" || character === "\r") && !insideQuotes) {
+      if (character === "\r" && value[index + 1] === "\n") index += 1;
+      row.push(field);
+      if (row.some((cell) => cell.trim())) rows.push(row);
+      row = [];
+      field = "";
+    } else {
+      field += character;
+    }
+  }
+  row.push(field);
+  if (row.some((cell) => cell.trim())) rows.push(row);
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map((header) => header.replace(/^\uFEFF/, "").trim().toLocaleLowerCase().replace(/[_\s]+/g, " "));
+  const titleIndex = headers.findIndex((header) => /^(track|song|title|titolo)( name)?$/.test(header));
+  const artistIndex = headers.findIndex((header) => /^artists?( name)?(\(s\))?$/.test(header) || header === "artist name(s)");
+  const hasHeader = titleIndex >= 0;
+  const dataRows = hasHeader ? rows.slice(1) : rows;
+  const resolvedTitleIndex = hasHeader ? titleIndex : 0;
+  const resolvedArtistIndex = hasHeader ? artistIndex : 1;
+
+  return dataRows.map((cells) => ({
+    title: (cells[resolvedTitleIndex] || "").replace(/^\uFEFF/, "").trim(),
+    artist: resolvedArtistIndex >= 0 ? (cells[resolvedArtistIndex] || "").trim() : "",
+  })).filter((track) => track.title);
+}
+
+function setConversionStatus(message, isError = false) {
+  spotifyConvertStatus.textContent = message;
+  if (isError) spotifyConvertStatus.dataset.error = "true";
+  else delete spotifyConvertStatus.dataset.error;
+}
+
+async function convertSpotifyPlaylist(urlValue, trackListValue, csvValue = "") {
+  const playlistId = parseSpotifyPlaylist(urlValue);
+  const tracks = csvValue ? parseSpotifyCsv(csvValue) : parseSpotifyTrackRows(trackListValue);
+  if (!playlistId) {
+    setConversionStatus("Inserisci un link condiviso valido a una playlist Spotify.", true);
+    return;
+  }
+  if (!tracks.length) {
+    setConversionStatus("Il CSV non contiene brani riconoscibili. Usa un CSV Exportify o incolla i brani manualmente.", true);
+    return;
+  }
+  if (tracks.length > 200) {
+    setConversionStatus("Puoi convertire fino a 200 brani per playlist.", true);
+    return;
+  }
+
+  const submitButton = spotifyConvertForm.querySelector("button[type='submit']");
+  submitButton.disabled = true;
+  setConversionStatus(`Cerco 0/${tracks.length} brani…`);
+
+  try {
+    const metadataUrl = new URL("https://open.spotify.com/oembed");
+    metadataUrl.searchParams.set("url", `https://open.spotify.com/playlist/${playlistId}`);
+    let metadata = {};
+    try {
+      const response = await fetch(metadataUrl, { signal: AbortSignal.timeout(12000) });
+      if (response.ok) metadata = await response.json();
+    } catch {
+      metadata = {};
+    }
+
+    const matchesByIndex = new Array(tracks.length).fill(null);
+    const batchSize = 20;
+    const concurrency = 4;
+    let completed = 0;
+    for (let batchStart = 0; batchStart < tracks.length; batchStart += batchSize) {
+      const batchEnd = Math.min(batchStart + batchSize, tracks.length);
+      let nextIndex = batchStart;
+      await Promise.all(Array.from({ length: Math.min(concurrency, batchEnd - batchStart) }, async () => {
+        while (nextIndex < batchEnd) {
+          const index = nextIndex;
+          nextIndex += 1;
+          const track = tracks[index];
+          const query = [track.title, track.artist].filter(Boolean).join(" ");
+          const params = new URLSearchParams({ q: query, filter: "music_songs" });
+          try {
+            const data = await fetchPiped(`/search?${params}`);
+            const match = (data.items || []).map(normalizeItem).find((item) => item?.type === "stream");
+            if (match) matchesByIndex[index] = { ...match, sourceTitle: track.title, sourceArtist: track.artist };
+          } catch {
+            matchesByIndex[index] = null;
+          }
+          completed += 1;
+          setConversionStatus(`Convertiti ${completed}/${tracks.length} brani…`);
+        }
+      }));
+    }
+    const matches = matchesByIndex.filter(Boolean);
+    const missing = tracks.filter((_, index) => !matchesByIndex[index]).map((track) => track.title);
+
+    if (!matches.length) {
+      setConversionStatus("Non ho trovato corrispondenze. Riprova con titoli e artisti più precisi.", true);
+      return;
+    }
+
+    const convertedPlaylist = {
+      id: `spotify-${playlistId}`,
+      type: "converted-playlist",
+      provider: "piped",
+      title: metadata.title ? `${metadata.title} · YouTube` : "Playlist convertita · YouTube",
+      uploader: "Spotify → Piped",
+      thumbnail: metadata.thumbnail_url || "",
+      spotifyPlaylistId: playlistId,
+      tracks: matches,
+    };
+    library = library.filter((item) => itemKey(item) !== itemKey(convertedPlaylist));
+    library.unshift(convertedPlaylist);
+    saveLibrary();
+    spotifyUrlInput.value = urlValue.trim();
+    spotifyCsvInput.value = "";
+    spotifyTrackList.value = "";
+    setConversionStatus(`Convertiti ${matches.length}/${tracks.length} brani.${missing.length ? ` Non trovati: ${missing.join(", ")}.` : ""}`);
+    renderLibrary();
+  } catch {
+    setConversionStatus("La conversione non è riuscita. Controlla la connessione e riprova.", true);
+  } finally {
+    submitButton.disabled = false;
+  }
+}
+
+async function performSearch(query, filter = searchFilter) {
+  const trimmedQuery = query.trim();
+  if (!trimmedQuery) {
+    updateNavigation("search");
+    viewEyebrow.textContent = "Esplora il catalogo";
+    viewTitle.textContent = "Cerca musica";
+    showFilters(true);
+    renderItems([], "Cerca un brano, un artista o una playlist.");
+    setStatus("");
+    return;
+  }
+
+  const media = parseYoutubeLink(trimmedQuery);
+  if (media) {
+    const item = {
+      id: media.playlistId || media.videoId,
+      videoId: media.videoId,
+      playlistId: media.playlistId,
+      type: media.playlistId && !media.videoId ? "playlist" : "stream",
+      title: "Link YouTube",
+      uploader: "",
+      thumbnail: "",
+    };
+    playItem(item);
+    return;
+  }
+
+  currentQuery = trimmedQuery;
+  searchFilter = filter;
+  updateNavigation("search");
+  showFilters(true);
+  viewEyebrow.textContent = filter === "music_playlists" ? "Playlist" : "Brani";
+  viewTitle.textContent = `Risultati per ${trimmedQuery}`;
+  results.replaceChildren();
+  setStatus("Cerco…");
+  hideSuggestions();
+
+  const params = new URLSearchParams({ q: trimmedQuery, filter });
+  try {
+    const data = await fetchPiped(`/search?${params}`);
+    const items = (data.items || []).map(normalizeItem).filter(Boolean);
+    const filteredItems = filter === "music_playlists"
+      ? items.filter((item) => item.type === "playlist")
+      : items.filter((item) => item.type === "stream");
+    renderItems(filteredItems, "Nessun risultato trovato. Prova un’altra ricerca.");
+    setStatus(`${filteredItems.length} risultati`);
+  } catch {
+    renderItems([], "La ricerca non è disponibile al momento.");
+    setStatus("Impossibile raggiungere il servizio musicale.", true);
+  }
+}
+
+async function showView(view) {
+  updateNavigation(view);
+  homePlaylistsSection.hidden = view !== "home";
+  if (view === "home") renderHomePlaylists();
+  spotifyImport.hidden = view !== "library";
+  if (view === "search") {
+    viewEyebrow.textContent = "Esplora il catalogo";
+    viewTitle.textContent = currentQuery ? `Risultati per ${currentQuery}` : "Cerca musica";
+    showFilters(true);
+    if (currentQuery) await performSearch(currentQuery, searchFilter);
+    else {
+      renderItems([], "Cerca un brano, un artista o una playlist.");
+      setStatus("");
+    }
+    return;
+  }
+
+  showFilters(false);
+  if (view === "library") {
+    viewEyebrow.textContent = "Salvata su questo dispositivo";
+    viewTitle.textContent = "La tua raccolta";
+    renderLibrary();
+    return;
+  }
+
+  if (view === "trending") {
+    viewEyebrow.textContent = "Italia";
+    viewTitle.textContent = "Tendenze";
+  } else {
+    viewEyebrow.textContent = "La selezione di oggi";
+    viewTitle.textContent = "Per te";
+  }
+  await loadTrending();
+}
+
+function hideSuggestions() {
+  suggestions.hidden = true;
+  queryInput.setAttribute("aria-expanded", "false");
+}
+
+function showSuggestions(values) {
+  suggestions.replaceChildren();
+  for (const value of values.slice(0, 7)) {
+    if (typeof value !== "string") continue;
+    const option = document.createElement("button");
+    option.type = "button";
+    option.setAttribute("role", "option");
+    option.textContent = value;
+    option.addEventListener("click", () => {
+      queryInput.value = value;
+      hideSuggestions();
+      performSearch(value);
+    });
+    suggestions.append(option);
+  }
+  suggestions.hidden = suggestions.childElementCount === 0;
+  queryInput.setAttribute("aria-expanded", String(!suggestions.hidden));
+}
+
+searchForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  performSearch(queryInput.value);
+});
+
+spotifyForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  addSpotifyPlaylist(spotifyUrlInput.value);
+});
+
+spotifyConvertForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const file = spotifyCsvInput.files[0];
+  if (file && file.size > 2_000_000) {
+    setConversionStatus("Il CSV supera il limite di 2 MB.", true);
+    return;
+  }
+  if (file) {
+    setConversionStatus("Leggo il CSV…");
+    file.text()
+      .then((contents) => convertSpotifyPlaylist(spotifyConvertUrl.value, spotifyTrackList.value, contents))
+      .catch(() => setConversionStatus("Non riesco a leggere il file. Prova a esportarlo di nuovo in formato CSV.", true));
+  } else {
+    convertSpotifyPlaylist(spotifyConvertUrl.value, spotifyTrackList.value);
+  }
+});
+
+previousTrackButton.addEventListener("click", () => moveInQueue(-1));
+nextTrackButton.addEventListener("click", () => moveInQueue(1));
+
+repeatQueueButton.addEventListener("click", () => {
+  repeatMode = repeatMode === "off" ? "one" : repeatMode === "one" ? "all" : "off";
+  updateQueueControls();
+});
+
+shuffleQueueButton.addEventListener("click", () => {
+  if (playbackQueue.length < 2) return;
+  const currentTrackIndex = playbackOrder[playbackQueueIndex];
+  shuffleEnabled = !shuffleEnabled;
+  if (shuffleEnabled) {
+    shuffleRemainingTracks(playbackQueueIndex);
+    playbackQueueIndex = 0;
+  } else {
+    playbackOrder = playbackQueue.map((_, index) => index);
+    playbackQueueIndex = playbackOrder.indexOf(currentTrackIndex);
+  }
+  updateQueueControls();
+});
+
+queryInput.addEventListener("input", () => {
+  clearTimeout(suggestionTimer);
+  const query = queryInput.value.trim();
+  const requestId = ++suggestionRequest;
+  if (query.length < 2) {
+    hideSuggestions();
+    return;
+  }
+  suggestionTimer = setTimeout(async () => {
+    try {
+      const values = await fetchPiped(`/suggestions?query=${encodeURIComponent(query)}`);
+      if (requestId === suggestionRequest && queryInput.value.trim() === query) {
+        showSuggestions(Array.isArray(values) ? values : []);
+      }
+    } catch {
+      if (requestId === suggestionRequest) hideSuggestions();
+    }
+  }, 240);
+});
+
+queryInput.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") hideSuggestions();
+});
+
+document.addEventListener("click", (event) => {
+  if (!searchForm.contains(event.target)) hideSuggestions();
+});
+
+for (const button of navButtons) {
+  button.addEventListener("click", () => showView(button.dataset.view));
+}
+
+for (const button of filters.querySelectorAll("[data-filter]")) {
+  button.addEventListener("click", () => {
+    searchFilter = button.dataset.filter;
+    showFilters(true);
+    if (currentQuery) performSearch(currentQuery, searchFilter);
+  });
+}
+
+document.querySelector("#quickSearches").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-query]");
+  if (!button) return;
+  queryInput.value = button.dataset.query;
+  performSearch(button.dataset.query, "music_songs");
+});
+
+window.addEventListener("storage", (event) => {
+  if (event.key !== LIBRARY_KEY) return;
+  library = loadLibrary();
+  if (activeView === "library") renderLibrary();
+  else if (activeView === "home") renderHomePlaylists();
+});
+
+showView("home");
