@@ -1,7 +1,8 @@
-const PIPED_APIS = [
-  "https://pipedapi.kavin.rocks",
-  "https://api.piped.private.coffee",
-  "https://pipedapi.adminforge.de",
+const SEARX_INSTANCES = [
+  "https://searx.be",
+  "https://paulgo.io",
+  "https://search.ononoki.org",
+  "https://searx.nameclue.net"
 ];
 const COBALT_API = "https://api.cobalt.tools/api/json";
 const LIBRARY_KEY = "epstein-island-music-library-v1";
@@ -61,12 +62,7 @@ let playbackRequestId = 0;
 frame.addEventListener("load", () => {
   if (!frame.src.startsWith("https://")) return;
   clearTimeout(playerLoadTimer);
-  if (frame.src.startsWith("https://piped.video/")) {
-    playerLoadStatus.textContent = "Player collegato. Se non parte, usa Apri ↗.";
-    playerLoadStatus.hidden = false;
-  } else {
-    playerLoadStatus.hidden = true;
-  }
+  playerLoadStatus.hidden = true;
 });
 
 audio.addEventListener("ended", () => {
@@ -115,20 +111,27 @@ function setStatus(message, isError = false) {
   else delete status.dataset.error;
 }
 
-async function fetchPiped(path) {
+async function fetchSearx(query) {
   let lastError;
-  for (const api of PIPED_APIS) {
+  for (const instance of SEARX_INSTANCES) {
     try {
-      const response = await fetch(new URL(path, `${api}/`), {
-        signal: AbortSignal.timeout(12000),
+      const url = new URL("/search", instance);
+      url.searchParams.set("q", query);
+      url.searchParams.set("engines", "youtube");
+      url.searchParams.set("format", "json");
+
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(10000),
+        headers: { "Accept": "application/json" }
       });
-      if (!response.ok) throw new Error(`Piped API HTTP ${response.status}`);
-      return await response.json();
+      if (!response.ok) throw new Error(`SearXNG HTTP ${response.status}`);
+      const data = await response.json();
+      return data.results || [];
     } catch (error) {
       lastError = error;
     }
   }
-  throw lastError || new Error("Piped API non disponibile");
+  throw lastError || new Error("SearXNG non disponibile");
 }
 
 async function fetchCobaltStream(videoId) {
@@ -206,37 +209,28 @@ function parseSpotifyPlaylist(value) {
   return /^[A-Za-z0-9]{22}$/.test(playlistId) ? playlistId : null;
 }
 
-function normalizeItem(item) {
-  if (!item || typeof item.url !== "string") return null;
-  let mediaUrl;
-  try {
-    mediaUrl = new URL(item.url, "https://youtube.com");
-  } catch {
-    return null;
-  }
-  const media = parseYoutubeLink(mediaUrl.href);
-  if (!media) return null;
-
-  const isPlaylist = item.type === "playlist" || mediaUrl.pathname === "/playlist";
-  const id = isPlaylist ? media.playlistId : media.videoId;
-  if (!id) return null;
+function normalizeSearxItem(result) {
+  if (!result || !result.url) return null;
+  const media = parseYoutubeLink(result.url);
+  if (!media || !media.videoId) return null;
 
   let thumbnail = "";
   try {
-    const candidate = new URL(item.thumbnail);
+    const thumb = result.img_src || result.thumbnail || "";
+    const candidate = new URL(thumb, "https://youtube.com");
     if (candidate.protocol === "https:") thumbnail = candidate.href;
   } catch {
     thumbnail = "";
   }
 
   return {
-    id,
-    videoId: isPlaylist ? "" : media.videoId,
-    playlistId: isPlaylist ? media.playlistId : "",
-    type: isPlaylist ? "playlist" : "stream",
-    provider: "piped",
-    title: item.title || item.name || "Senza titolo",
-    uploader: item.uploaderName || item.uploader || "YouTube",
+    id: media.videoId,
+    videoId: media.videoId,
+    playlistId: "",
+    type: "stream",
+    provider: "searx",
+    title: result.title || "Senza titolo",
+    uploader: result.author || result.template || "YouTube",
     thumbnail,
   };
 }
@@ -340,8 +334,7 @@ function moveInQueue(direction) {
 
 async function playMediaItem(item) {
   const isSpotify = item.provider === "spotify";
-  const isYoutubePlaylist = !isSpotify && !item.videoId && item.playlistId;
-  const useIframe = isSpotify || isYoutubePlaylist;
+  const useIframe = isSpotify;
   const requestId = ++playbackRequestId;
   clearTimeout(playerLoadTimer);
   playerHeading.textContent = item.title;
@@ -354,35 +347,18 @@ async function playMediaItem(item) {
   playerPanel.classList.toggle("is-audio", !useIframe);
 
   if (useIframe) {
-    const playerUrl = isSpotify
-      ? new URL(`/embed/playlist/${encodeURIComponent(item.id)}`, "https://open.spotify.com/")
-      : new URL("/playlist", "https://piped.video/");
-    if (!isSpotify && item.playlistId) playerUrl.searchParams.set("list", item.playlistId);
-    if (!isSpotify) playerUrl.searchParams.set("instance", PIPED_APIS[0]);
+    const playerUrl = new URL(`/embed/playlist/${encodeURIComponent(item.id)}`, "https://open.spotify.com/");
     audio.pause();
     audio.removeAttribute("src");
     audio.hidden = true;
     frame.src = playerUrl.href;
     frame.hidden = false;
-    frame.title = `Player ${isSpotify ? "Spotify" : "Piped"}: ${item.title}`;
-    playerOpenLink.href = isSpotify
-      ? `https://open.spotify.com/playlist/${encodeURIComponent(item.id)}`
-      : playerUrl.href;
-    playerOpenLink.textContent = isSpotify ? "Apri Spotify ↗" : "Apri ↗";
-    playerNote.textContent = isSpotify
-      ? "Player ufficiale Spotify. La riproduzione può richiedere l’accesso a Spotify."
-      : "Playlist fornita da Piped. Se non si avvia, usa Apri ↗.";
-    playerLoadStatus.hidden = !isYoutubePlaylist;
-    playerLoadStatus.textContent = isYoutubePlaylist ? "Connessione al player Piped…" : "";
-    if (isYoutubePlaylist) {
-      playerLoadTimer = setTimeout(() => {
-        playerLoadStatus.textContent = "Piped non risponde. Prova il link Apri ↗ oppure riprova tra poco.";
-        playerLoadStatus.hidden = false;
-      }, 15000);
-    } else {
-      playerLoadStatus.hidden = true;
-    }
-    setStatus(`Carico ${isSpotify ? "Spotify" : "la playlist"}: ${item.title}`);
+    frame.title = `Player Spotify: ${item.title}`;
+    playerOpenLink.href = `https://open.spotify.com/playlist/${encodeURIComponent(item.id)}`;
+    playerOpenLink.textContent = "Apri Spotify ↗";
+    playerNote.textContent = "Player ufficiale Spotify. La riproduzione può richiedere l’accesso a Spotify.";
+    playerLoadStatus.hidden = true;
+    setStatus(`Carico Spotify: ${item.title}`);
     return;
   }
 
@@ -450,7 +426,7 @@ function createCard(item) {
   meta.className = "music-card-meta";
   meta.textContent = item.type === "converted-playlist"
     ? `Playlist convertita · ${item.tracks.length} brani`
-    : item.type === "playlist" || item.type === "spotify-playlist"
+    : item.type === "spotify-playlist"
       ? `Playlist · ${item.uploader}`
     : item.uploader;
 
@@ -492,7 +468,7 @@ function renderItems(items, emptyMessage = "Nessun risultato trovato.", target =
 }
 
 function renderHomePlaylists() {
-  const playlists = library.filter((item) => ["playlist", "spotify-playlist", "converted-playlist"].includes(item.type));
+  const playlists = library.filter((item) => ["spotify-playlist", "converted-playlist"].includes(item.type));
   homePlaylistsSection.hidden = activeView !== "home" || playlists.length === 0;
   homePlaylistCount.textContent = `${playlists.length} ${playlists.length === 1 ? "playlist" : "playlist"}`;
   if (playlists.length) renderItems(playlists, "", homePlaylists);
@@ -517,12 +493,12 @@ async function loadTrending() {
   if (activeView === "home") renderHomePlaylists();
   else homePlaylistsSection.hidden = true;
   results.replaceChildren();
-  setStatus("Carico le tendenze…");
+  setStatus("Carico i brani popolari…");
   try {
-    const data = await fetchPiped("/trending?region=IT");
-    const items = (Array.isArray(data) ? data : []).map(normalizeItem).filter(Boolean);
+    const resultsData = await fetchSearx("hit italia music 2026");
+    const items = resultsData.map(normalizeSearxItem).filter(Boolean);
     renderItems(items, "Al momento non ci sono tendenze disponibili.");
-    setStatus(items.length ? `${items.length} tendenze` : "Nessun risultato disponibile.");
+    setStatus(items.length ? `${items.length} brani trovati` : "Nessun risultato disponibile.");
   } catch {
     renderItems([], "Le tendenze non sono raggiungibili. Puoi cercare un brano o una playlist.");
     setStatus("Servizio musicale temporaneamente non disponibile.", true);
@@ -653,208 +629,3 @@ function parseSpotifyCsv(value) {
   const artistIndex = headers.findIndex((header) => /^artists?( name)?(\(s\))?$/.test(header) || header === "artist name(s)");
   const hasHeader = titleIndex >= 0;
   const dataRows = hasHeader ? rows.slice(1) : rows;
-  const resolvedTitleIndex = hasHeader ? titleIndex : 0;
-  const resolvedArtistIndex = hasHeader ? artistIndex : 1;
-
-  return dataRows.map((cells) => ({
-    title: (cells[resolvedTitleIndex] || "").replace(/^\uFEFF/, "").trim(),
-    artist: resolvedArtistIndex >= 0 ? (cells[resolvedArtistIndex] || "").trim() : "",
-  })).filter((track) => track.title);
-}
-
-function setConversionStatus(message, isError = false) {
-  spotifyConvertStatus.textContent = message;
-  if (isError) spotifyConvertStatus.dataset.error = "true";
-  else delete spotifyConvertStatus.dataset.error;
-}
-
-async function convertSpotifyPlaylist(urlValue, trackListValue, csvValue = "") {
-  const playlistId = parseSpotifyPlaylist(urlValue);
-  const tracks = csvValue ? parseSpotifyCsv(csvValue) : parseSpotifyTrackRows(trackListValue);
-  if (!playlistId) {
-    setConversionStatus("Inserisci un link condiviso valido a una playlist Spotify.", true);
-    return;
-  }
-  if (!tracks.length) {
-    setConversionStatus("Il CSV non contiene brani riconoscibili. Usa un CSV Exportify o incolla i brani manualmente.", true);
-    return;
-  }
-  if (tracks.length > 200) {
-    setConversionStatus("Puoi convertire fino a 200 brani per playlist.", true);
-    return;
-  }
-
-  const submitButton = spotifyConvertForm.querySelector("button[type='submit']");
-  submitButton.disabled = true;
-  setConversionStatus(`Cerco 0/${tracks.length} brani…`);
-
-  try {
-    const metadataUrl = new URL("https://open.spotify.com/oembed");
-    metadataUrl.searchParams.set("url", `https://open.spotify.com/playlist/${playlistId}`);
-    let metadata = {};
-    try {
-      const response = await fetch(metadataUrl, { signal: AbortSignal.timeout(12000) });
-      if (response.ok) metadata = await response.json();
-    } catch {
-      metadata = {};
-    }
-
-    const matchesByIndex = new Array(tracks.length).fill(null);
-    const batchSize = 20;
-    const concurrency = 4;
-    let completed = 0;
-    for (let batchStart = 0; batchStart < tracks.length; batchStart += batchSize) {
-      const batchEnd = Math.min(batchStart + batchSize, tracks.length);
-      let nextIndex = batchStart;
-      await Promise.all(Array.from({ length: Math.min(concurrency, batchEnd - batchStart) }, async () => {
-        while (nextIndex < batchEnd) {
-          const index = nextIndex;
-          nextIndex += 1;
-          const track = tracks[index];
-          const query = [track.title, track.artist].filter(Boolean).join(" ");
-          const params = new URLSearchParams({ q: query, filter: "music_songs" });
-          try {
-            const data = await fetchPiped(`/search?${params}`);
-            const match = (data.items || []).map(normalizeItem).find((item) => item?.type === "stream");
-            if (match) matchesByIndex[index] = { ...match, sourceTitle: track.title, sourceArtist: track.artist };
-          } catch {
-            matchesByIndex[index] = null;
-          }
-          completed += 1;
-          setConversionStatus(`Convertiti ${completed}/${tracks.length} brani…`);
-        }
-      }));
-    }
-    const matches = matchesByIndex.filter(Boolean);
-    const missing = tracks.filter((_, index) => !matchesByIndex[index]).map((track) => track.title);
-
-    if (!matches.length) {
-      setConversionStatus("Non ho trovato corrispondenze. Riprova con titoli e artisti più precisi.", true);
-      return;
-    }
-
-    const convertedPlaylist = {
-      id: `spotify-${playlistId}`,
-      type: "converted-playlist",
-      provider: "piped",
-      title: metadata.title ? `${metadata.title} · YouTube` : "Playlist convertita · YouTube",
-      uploader: "Spotify → Piped",
-      thumbnail: metadata.thumbnail_url || "",
-      spotifyPlaylistId: playlistId,
-      tracks: matches,
-    };
-    library = library.filter((item) => itemKey(item) !== itemKey(convertedPlaylist));
-    library.unshift(convertedPlaylist);
-    saveLibrary();
-    spotifyUrlInput.value = urlValue.trim();
-    spotifyCsvInput.value = "";
-    spotifyTrackList.value = "";
-    setConversionStatus(`Convertiti ${matches.length}/${tracks.length} brani.${missing.length ? ` Non trovati: ${missing.join(", ")}.` : ""}`);
-    renderLibrary();
-  } catch {
-    setConversionStatus("La conversione non è riuscita. Controlla la connessione e riprova.", true);
-  } finally {
-    submitButton.disabled = false;
-  }
-}
-
-async function performSearch(query, filter = searchFilter) {
-  const trimmedQuery = query.trim();
-  if (!trimmedQuery) {
-    updateNavigation("search");
-    viewEyebrow.textContent = "Esplora il catalogo";
-    viewTitle.textContent = "Cerca musica";
-    showFilters(true);
-    renderItems([], "Cerca un brano, un artista o una playlist.");
-    setStatus("");
-    return;
-  }
-
-  const media = parseYoutubeLink(trimmedQuery);
-  if (media) {
-    const item = {
-      id: media.playlistId || media.videoId,
-      videoId: media.videoId,
-      playlistId: media.playlistId,
-      type: media.playlistId && !media.videoId ? "playlist" : "stream",
-      title: "Link YouTube",
-      uploader: "",
-      thumbnail: "",
-    };
-    playItem(item);
-    return;
-  }
-
-  currentQuery = trimmedQuery;
-  searchFilter = filter;
-  updateNavigation("search");
-  showFilters(true);
-  viewEyebrow.textContent = filter === "music_playlists" ? "Playlist" : "Brani";
-  viewTitle.textContent = `Risultati per ${trimmedQuery}`;
-  results.replaceChildren();
-  setStatus("Cerco…");
-  hideSuggestions();
-
-  const params = new URLSearchParams({ q: trimmedQuery, filter });
-  try {
-    const data = await fetchPiped(`/search?${params}`);
-    const items = (data.items || []).map(normalizeItem).filter(Boolean);
-    const filteredItems = filter === "music_playlists"
-      ? items.filter((item) => item.type === "playlist")
-      : items.filter((item) => item.type === "stream");
-    renderItems(filteredItems, "Nessun risultato trovato. Prova un’altra ricerca.");
-    setStatus(`${filteredItems.length} risultati`);
-  } catch {
-    renderItems([], "La ricerca non è disponibile al momento.");
-    setStatus("Impossibile raggiungere il servizio musicale.", true);
-  }
-}
-
-async function showView(view) {
-  updateNavigation(view);
-  homePlaylistsSection.hidden = view !== "home";
-  if (view === "home") renderHomePlaylists();
-  spotifyImport.hidden = view !== "library";
-  if (view === "search") {
-    viewEyebrow.textContent = "Esplora il catalogo";
-    viewTitle.textContent = currentQuery ? `Risultati per ${currentQuery}` : "Cerca musica";
-    showFilters(true);
-    if (currentQuery) await performSearch(currentQuery, searchFilter);
-    else {
-      renderItems([], "Cerca un brano, un artista o una playlist.");
-      setStatus("");
-    }
-    return;
-  }
-
-  showFilters(false);
-  if (view === "library") {
-    viewEyebrow.textContent = "Salvata su questo dispositivo";
-    viewTitle.textContent = "La tua raccolta";
-    renderLibrary();
-    return;
-  }
-
-  if (view === "trending") {
-    viewEyebrow.textContent = "Italia";
-    viewTitle.textContent = "Tendenze";
-  } else {
-    viewEyebrow.textContent = "La selezione di oggi";
-    viewTitle.textContent = "Per te";
-  }
-  await loadTrending();
-}
-
-function hideSuggestions() {
-  suggestions.hidden = true;
-  queryInput.setAttribute("aria-expanded", "false");
-}
-
-function showSuggestions(values) {
-  suggestions.replaceChildren();
-  for (const value of values.slice(0, 7)) {
-    if (typeof value !== "string") continue;
-    const option = document.createElement("button");
-    option.type = "button";
-    option.setAttribute("role", "option");
-    option.
