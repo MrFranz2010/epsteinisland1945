@@ -1,9 +1,17 @@
 const PIPED_APIS = [
-  "https://api.piped.private.coffee",
   "https://pipedapi.kavin.rocks",
+  "https://api.piped.private.coffee",
   "https://pipedapi.adminforge.de",
+  "https://pipedapi.phoenixthrush.com",
 ];
-const INVIDIOUS_API = "https://invidious.f5.si";
+
+const INVIDIOUS_APIS = [
+  "https://iv.melmac.space",
+  "https://invidious.private.coffee",
+  "https://yewtu.be",
+  "https://invidious.privacydev.net",
+];
+
 const LIBRARY_KEY = "epstein-island-music-library-v1";
 
 const searchForm = document.querySelector("#musicSearchForm");
@@ -129,6 +137,33 @@ async function fetchPiped(path) {
     }
   }
   throw lastError || new Error("Piped API non disponibile");
+}
+
+async function fetchInvidious(path) {
+  let lastError;
+  for (const api of INVIDIOUS_APIS) {
+    try {
+      const response = await fetch(new URL(path, `${api}/`), {
+        signal: AbortSignal.timeout(12000),
+      });
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => "");
+        if (/LOGIN_REQUIRED|sign in to confirm|not a bot/i.test(errorBody)) {
+          throw new Error("LOGIN_REQUIRED");
+        }
+        throw new Error(`Invidious API HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      const upstreamError = [data.error, data.message, data.type].filter((value) => typeof value === "string").join(" ");
+      if (/LOGIN_REQUIRED|sign in to confirm|not a bot/i.test(upstreamError)) {
+        throw new Error("LOGIN_REQUIRED");
+      }
+      return data;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("Invidious API non disponibile");
 }
 
 function parseYoutubeLink(value) {
@@ -380,18 +415,8 @@ async function playMediaItem(item) {
   setStatus(`Carico audio: ${item.title}`);
 
   try {
-    const response = await fetch(`${INVIDIOUS_API}/api/v1/videos/${encodeURIComponent(item.videoId)}?local=false`, {
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => "");
-      if (/LOGIN_REQUIRED|sign in to confirm|not a bot/i.test(errorBody)) throw new Error("LOGIN_REQUIRED");
-      throw new Error(`Invidious API HTTP ${response.status}`);
-    }
-    const data = await response.json();
+    const data = await fetchInvidious(`api/v1/videos/${encodeURIComponent(item.videoId)}?local=false`);
     if (requestId !== playbackRequestId) return;
-    const upstreamError = [data.error, data.message, data.type].filter((value) => typeof value === "string").join(" ");
-    if (/LOGIN_REQUIRED|sign in to confirm|not a bot/i.test(upstreamError)) throw new Error("LOGIN_REQUIRED");
     const streams = (data.adaptiveFormats || []).filter((stream) => stream.type?.startsWith("audio/") && stream.url);
     const stream = streams.find((candidate) => candidate.type.includes("audio/mp4"))
       || streams.sort((left, right) => Number(right.bitrate) - Number(left.bitrate))[0];
@@ -412,8 +437,8 @@ async function playMediaItem(item) {
     playerOpenLink.href = `https://music.youtube.com/watch?v=${encodeURIComponent(item.videoId)}`;
     playerOpenLink.textContent = "Apri YouTube Music ↗";
     playerLoadStatus.textContent = loginRequired
-      ? "YouTube ha bloccato la richiesta anonima di Invidious. Prova ad aprire il brano con il tuo account o riprova più tardi."
-      : "Invidious non è raggiungibile. Prova il link YouTube Music o riprova più tardi.";
+      ? "YouTube ha bloccato la richiesta anonima. Prova ad aprire il brano con il tuo account o riprova più tardi."
+      : "Le istanze Invidious non sono raggiungibili. Prova il link YouTube Music o riprova più tardi.";
     playerLoadStatus.hidden = false;
     setStatus(loginRequired ? "Accesso anonimo temporaneamente bloccato da YouTube." : "Errore durante il caricamento dello stream audio.", true);
   }
@@ -972,3 +997,4 @@ window.addEventListener("storage", (event) => {
 });
 
 showView("home");
+
