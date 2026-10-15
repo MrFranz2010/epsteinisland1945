@@ -102,10 +102,13 @@
           </div>
           <iframe id="musicFrame" title="Player musicale" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen hidden></iframe>
         </div>
+        <p class="music-player-load-status" id="playerLoadStatus" role="status" aria-live="polite" hidden></p>
         <div class="music-queue-controls" id="musicQueueControls" hidden>
           <button type="button" id="previousTrack" aria-label="Brano precedente">←</button>
           <span id="queuePosition">1 / 1</span>
           <button type="button" id="nextTrack" aria-label="Brano successivo">→</button>
+          <button type="button" id="repeatQueue" aria-label="Ripetizione disattivata" title="Cambia modalità di ripetizione">↻</button>
+          <button type="button" id="shuffleQueue" aria-label="Attiva riproduzione casuale" aria-pressed="false" title="Riproduzione casuale">⇄</button>
         </div>
         <p class="music-player-note" id="musicPlayerNote">Player fornito da Piped. La disponibilità dipende dall’istanza esterna.</p>
       </aside>

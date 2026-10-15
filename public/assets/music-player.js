@@ -33,6 +33,9 @@ const queueControls = document.querySelector("#musicQueueControls");
 const queuePosition = document.querySelector("#queuePosition");
 const previousTrackButton = document.querySelector("#previousTrack");
 const nextTrackButton = document.querySelector("#nextTrack");
+const repeatQueueButton = document.querySelector("#repeatQueue");
+const shuffleQueueButton = document.querySelector("#shuffleQueue");
+const playerLoadStatus = document.querySelector("#playerLoadStatus");
 
 let activeView = "home";
 let searchFilter = "music_songs";
@@ -41,7 +44,21 @@ let suggestionTimer;
 let suggestionRequest = 0;
 let library = loadLibrary();
 let playbackQueue = [];
+let playbackOrder = [];
 let playbackQueueIndex = -1;
+let repeatMode = "off";
+let shuffleEnabled = false;
+let playerLoadTimer;
+
+frame.addEventListener("load", () => {
+  clearTimeout(playerLoadTimer);
+  if (frame.src.startsWith("https://piped.video/")) {
+    playerLoadStatus.textContent = "Player collegato. Se non parte, usa Apri ↗.";
+    playerLoadStatus.hidden = false;
+  } else {
+    playerLoadStatus.hidden = true;
+  }
+});
 
 function loadLibrary() {
   try {
@@ -199,12 +216,20 @@ function showFilters(visible) {
 }
 
 function updateQueueControls() {
-  const hasQueue = playbackQueue.length > 1;
+  const hasQueue = playbackQueue.length > 0;
   queueControls.hidden = !hasQueue;
   if (!hasQueue) return;
-  queuePosition.textContent = `${playbackQueueIndex + 1} / ${playbackQueue.length}`;
-  previousTrackButton.disabled = playbackQueueIndex <= 0;
-  nextTrackButton.disabled = playbackQueueIndex >= playbackQueue.length - 1;
+  queuePosition.textContent = `${playbackQueueIndex + 1} / ${playbackOrder.length}`;
+  previousTrackButton.disabled = playbackQueueIndex <= 0 && repeatMode !== "all";
+  nextTrackButton.disabled = playbackQueueIndex >= playbackOrder.length - 1 && repeatMode === "off";
+  repeatQueueButton.dataset.mode = repeatMode;
+  repeatQueueButton.textContent = repeatMode === "one" ? "↻¹" : "↻";
+  repeatQueueButton.setAttribute("aria-label", `Ripetizione ${repeatMode === "off" ? "disattivata" : repeatMode === "one" ? "brano" : "playlist"}`);
+  repeatQueueButton.title = `Ripetizione: ${repeatMode === "off" ? "disattivata" : repeatMode === "one" ? "brano" : "playlist"}`;
+  shuffleQueueButton.setAttribute("aria-pressed", String(shuffleEnabled));
+  shuffleQueueButton.setAttribute("aria-label", shuffleEnabled ? "Disattiva riproduzione casuale" : "Attiva riproduzione casuale");
+  shuffleQueueButton.title = shuffleEnabled ? "Disattiva casuale" : "Attiva casuale";
+  shuffleQueueButton.classList.toggle("is-active", shuffleEnabled);
 }
 
 function playItem(item) {
@@ -214,21 +239,54 @@ function playItem(item) {
       setStatus("Questa playlist convertita non contiene brani riproducibili.", true);
       return;
     }
+    playbackOrder = playbackQueue.map((_, index) => index);
+    if (shuffleEnabled) shuffleRemainingTracks(0);
     playQueueTrack(0);
     return;
   }
 
-  playbackQueue = [];
-  playbackQueueIndex = -1;
+  if (item.provider !== "spotify" && item.type === "stream") {
+    playbackQueue = [item];
+    playbackOrder = [0];
+    playbackQueueIndex = 0;
+  } else {
+    playbackQueue = [];
+    playbackOrder = [];
+    playbackQueueIndex = -1;
+  }
   updateQueueControls();
   playMediaItem(item);
 }
 
 function playQueueTrack(index) {
-  if (index < 0 || index >= playbackQueue.length) return;
+  if (index < 0 || index >= playbackOrder.length) return;
   playbackQueueIndex = index;
-  playMediaItem(playbackQueue[index]);
+  playMediaItem(playbackQueue[playbackOrder[index]]);
   updateQueueControls();
+}
+
+function shuffleRemainingTracks(currentPosition) {
+  const currentTrack = playbackOrder[currentPosition];
+  const remaining = playbackOrder.filter((trackIndex) => trackIndex !== currentTrack);
+  for (let index = remaining.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [remaining[index], remaining[swapIndex]] = [remaining[swapIndex], remaining[index]];
+  }
+  playbackOrder = [currentTrack, ...remaining];
+}
+
+function moveInQueue(direction) {
+  if (!playbackOrder.length) return;
+  if (repeatMode === "one" && direction > 0) {
+    playQueueTrack(playbackQueueIndex);
+    return;
+  }
+  let nextPosition = playbackQueueIndex + direction;
+  if (nextPosition < 0 || nextPosition >= playbackOrder.length) {
+    if (repeatMode !== "all") return;
+    nextPosition = nextPosition < 0 ? playbackOrder.length - 1 : 0;
+  }
+  playQueueTrack(nextPosition);
 }
 
 function playMediaItem(item) {
@@ -238,6 +296,7 @@ function playMediaItem(item) {
     : new URL(item.playlistId ? "/playlist" : "/watch", "https://piped.video/");
   if (!isSpotify && item.videoId) playerUrl.searchParams.set("v", item.videoId);
   if (!isSpotify && item.playlistId) playerUrl.searchParams.set("list", item.playlistId);
+  if (!isSpotify) playerUrl.searchParams.set("instance", PIPED_APIS[0]);
   frame.src = playerUrl.href;
   frame.hidden = false;
   playerPlaceholder.hidden = true;
@@ -251,7 +310,16 @@ function playMediaItem(item) {
   playerPanel.classList.toggle("is-spotify", isSpotify);
   playerNote.textContent = isSpotify
     ? "Player ufficiale Spotify. La riproduzione può richiedere l’accesso a Spotify."
-    : "Player fornito da Piped. La disponibilità dipende dall’istanza esterna.";
+    : "Player Piped con istanza alternativa. Se resta in caricamento, usa Apri ↗.";
+  playerLoadStatus.hidden = isSpotify;
+  playerLoadStatus.textContent = isSpotify ? "" : "Connessione al player Piped…";
+  clearTimeout(playerLoadTimer);
+  if (!isSpotify) {
+    playerLoadTimer = setTimeout(() => {
+      playerLoadStatus.textContent = "Piped non risponde. Prova il link Apri ↗ oppure riprova tra poco.";
+      playerLoadStatus.hidden = false;
+    }, 15000);
+  }
   setStatus(`In riproduzione: ${item.title}`);
 }
 
@@ -719,8 +787,27 @@ spotifyConvertForm.addEventListener("submit", (event) => {
   }
 });
 
-previousTrackButton.addEventListener("click", () => playQueueTrack(playbackQueueIndex - 1));
-nextTrackButton.addEventListener("click", () => playQueueTrack(playbackQueueIndex + 1));
+previousTrackButton.addEventListener("click", () => moveInQueue(-1));
+nextTrackButton.addEventListener("click", () => moveInQueue(1));
+
+repeatQueueButton.addEventListener("click", () => {
+  repeatMode = repeatMode === "off" ? "one" : repeatMode === "one" ? "all" : "off";
+  updateQueueControls();
+});
+
+shuffleQueueButton.addEventListener("click", () => {
+  if (playbackQueue.length < 2) return;
+  const currentTrackIndex = playbackOrder[playbackQueueIndex];
+  shuffleEnabled = !shuffleEnabled;
+  if (shuffleEnabled) {
+    shuffleRemainingTracks(playbackQueueIndex);
+    playbackQueueIndex = 0;
+  } else {
+    playbackOrder = playbackQueue.map((_, index) => index);
+    playbackQueueIndex = playbackOrder.indexOf(currentTrackIndex);
+  }
+  updateQueueControls();
+});
 
 queryInput.addEventListener("input", () => {
   clearTimeout(suggestionTimer);
