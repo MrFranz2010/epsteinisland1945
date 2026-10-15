@@ -3,6 +3,7 @@ const PIPED_APIS = [
   "https://pipedapi.kavin.rocks",
   "https://pipedapi.adminforge.de",
 ];
+const INVIDIOUS_API = "https://invidious.f5.si";
 const LIBRARY_KEY = "epstein-island-music-library-v1";
 
 const searchForm = document.querySelector("#musicSearchForm");
@@ -15,6 +16,7 @@ const filters = document.querySelector("#musicFilters");
 const status = document.querySelector("#musicStatus");
 const results = document.querySelector("#musicResults");
 const frame = document.querySelector("#musicFrame");
+const audio = document.querySelector("#musicAudio");
 const playerPlaceholder = document.querySelector("#playerPlaceholder");
 const playerHeading = document.querySelector("#playerHeading");
 const playerOpenLink = document.querySelector("#playerOpenLink");
@@ -49,8 +51,10 @@ let playbackQueueIndex = -1;
 let repeatMode = "off";
 let shuffleEnabled = false;
 let playerLoadTimer;
+let playbackRequestId = 0;
 
 frame.addEventListener("load", () => {
+  if (!frame.src.startsWith("https://")) return;
   clearTimeout(playerLoadTimer);
   if (frame.src.startsWith("https://piped.video/")) {
     playerLoadStatus.textContent = "Player collegato. Se non parte, usa Apri ↗.";
@@ -58,6 +62,29 @@ frame.addEventListener("load", () => {
   } else {
     playerLoadStatus.hidden = true;
   }
+});
+
+audio.addEventListener("ended", () => {
+  if (playbackQueueIndex < 0) return;
+  if (repeatMode === "one") {
+    audio.currentTime = 0;
+    audio.play().catch(() => setStatus("Premi play per ripetere il brano."));
+    return;
+  }
+  if (playbackQueueIndex < playbackOrder.length - 1) {
+    playQueueTrack(playbackQueueIndex + 1);
+  } else if (repeatMode === "all") {
+    playQueueTrack(0);
+  } else {
+    setStatus("Playlist terminata.");
+  }
+});
+
+audio.addEventListener("error", () => {
+  if (audio.hidden) return;
+  playerLoadStatus.textContent = "Lo stream audio non è disponibile. Prova il link Apri ↗.";
+  playerLoadStatus.hidden = false;
+  setStatus("Errore durante il caricamento del brano.", true);
 });
 
 function loadLibrary() {
@@ -221,7 +248,7 @@ function updateQueueControls() {
   if (!hasQueue) return;
   queuePosition.textContent = `${playbackQueueIndex + 1} / ${playbackOrder.length}`;
   previousTrackButton.disabled = playbackQueueIndex <= 0 && repeatMode !== "all";
-  nextTrackButton.disabled = playbackQueueIndex >= playbackOrder.length - 1 && repeatMode === "off";
+  nextTrackButton.disabled = playbackQueueIndex >= playbackOrder.length - 1 && repeatMode !== "all";
   repeatQueueButton.dataset.mode = repeatMode;
   repeatQueueButton.textContent = repeatMode === "one" ? "↻¹" : "↻";
   repeatQueueButton.setAttribute("aria-label", `Ripetizione ${repeatMode === "off" ? "disattivata" : repeatMode === "one" ? "brano" : "playlist"}`);
@@ -277,10 +304,6 @@ function shuffleRemainingTracks(currentPosition) {
 
 function moveInQueue(direction) {
   if (!playbackOrder.length) return;
-  if (repeatMode === "one" && direction > 0) {
-    playQueueTrack(playbackQueueIndex);
-    return;
-  }
   let nextPosition = playbackQueueIndex + direction;
   if (nextPosition < 0 || nextPosition >= playbackOrder.length) {
     if (repeatMode !== "all") return;
@@ -289,38 +312,92 @@ function moveInQueue(direction) {
   playQueueTrack(nextPosition);
 }
 
-function playMediaItem(item) {
+async function playMediaItem(item) {
   const isSpotify = item.provider === "spotify";
-  const playerUrl = isSpotify
-    ? new URL(`/embed/playlist/${encodeURIComponent(item.id)}`, "https://open.spotify.com/")
-    : new URL(item.playlistId ? "/playlist" : "/watch", "https://piped.video/");
-  if (!isSpotify && item.videoId) playerUrl.searchParams.set("v", item.videoId);
-  if (!isSpotify && item.playlistId) playerUrl.searchParams.set("list", item.playlistId);
-  if (!isSpotify) playerUrl.searchParams.set("instance", PIPED_APIS[0]);
-  frame.src = playerUrl.href;
-  frame.hidden = false;
-  playerPlaceholder.hidden = true;
+  const isYoutubePlaylist = !isSpotify && !item.videoId && item.playlistId;
+  const useIframe = isSpotify || isYoutubePlaylist;
+  const requestId = ++playbackRequestId;
+  clearTimeout(playerLoadTimer);
   playerHeading.textContent = item.title;
-  frame.title = `Player ${isSpotify ? "Spotify" : "Piped"}: ${item.title}`;
-  playerOpenLink.href = isSpotify
-    ? `https://open.spotify.com/playlist/${encodeURIComponent(item.id)}`
-    : playerUrl.href;
-  playerOpenLink.textContent = isSpotify ? "Apri Spotify ↗" : "Apri ↗";
   playerOpenLink.hidden = false;
   playerPanel.classList.toggle("is-spotify", isSpotify);
-  playerNote.textContent = isSpotify
-    ? "Player ufficiale Spotify. La riproduzione può richiedere l’accesso a Spotify."
-    : "Player Piped con istanza alternativa. Se resta in caricamento, usa Apri ↗.";
-  playerLoadStatus.hidden = isSpotify;
-  playerLoadStatus.textContent = isSpotify ? "" : "Connessione al player Piped…";
-  clearTimeout(playerLoadTimer);
-  if (!isSpotify) {
-    playerLoadTimer = setTimeout(() => {
-      playerLoadStatus.textContent = "Piped non risponde. Prova il link Apri ↗ oppure riprova tra poco.";
-      playerLoadStatus.hidden = false;
-    }, 15000);
+  playerPanel.classList.toggle("is-audio", !useIframe);
+
+  if (useIframe) {
+    const playerUrl = isSpotify
+      ? new URL(`/embed/playlist/${encodeURIComponent(item.id)}`, "https://open.spotify.com/")
+      : new URL("/playlist", "https://piped.video/");
+    if (!isSpotify && item.playlistId) playerUrl.searchParams.set("list", item.playlistId);
+    if (!isSpotify) playerUrl.searchParams.set("instance", PIPED_APIS[0]);
+    audio.pause();
+    audio.removeAttribute("src");
+    audio.hidden = true;
+    frame.src = playerUrl.href;
+    frame.hidden = false;
+    frame.title = `Player ${isSpotify ? "Spotify" : "Piped"}: ${item.title}`;
+    playerPlaceholder.hidden = true;
+    playerOpenLink.href = isSpotify
+      ? `https://open.spotify.com/playlist/${encodeURIComponent(item.id)}`
+      : playerUrl.href;
+    playerOpenLink.textContent = isSpotify ? "Apri Spotify ↗" : "Apri ↗";
+    playerNote.textContent = isSpotify
+      ? "Player ufficiale Spotify. La riproduzione può richiedere l’accesso a Spotify."
+      : "Playlist fornita da Piped. Se non si avvia, usa Apri ↗.";
+    playerLoadStatus.hidden = !isYoutubePlaylist;
+    playerLoadStatus.textContent = isYoutubePlaylist ? "Connessione al player Piped…" : "";
+    if (isYoutubePlaylist) {
+      playerLoadTimer = setTimeout(() => {
+        playerLoadStatus.textContent = "Piped non risponde. Prova il link Apri ↗ oppure riprova tra poco.";
+        playerLoadStatus.hidden = false;
+      }, 15000);
+    } else {
+      playerLoadStatus.hidden = true;
+    }
+    setStatus(`Carico ${isSpotify ? "Spotify" : "la playlist"}: ${item.title}`);
+    return;
   }
-  setStatus(`In riproduzione: ${item.title}`);
+
+  frame.hidden = true;
+  frame.src = "about:blank";
+  playerPlaceholder.hidden = true;
+  audio.hidden = false;
+  audio.pause();
+  audio.removeAttribute("src");
+  playerOpenLink.href = new URL(item.playlistId ? `/playlist?list=${encodeURIComponent(item.playlistId)}` : `/watch?v=${encodeURIComponent(item.videoId)}`, "https://piped.video/").href;
+  playerOpenLink.href += `${playerOpenLink.href.includes("?") ? "&" : "?"}instance=${encodeURIComponent(PIPED_APIS[0])}`;
+  playerOpenLink.textContent = "Apri su Piped ↗";
+  playerNote.textContent = "Audio via Invidious. Repeat e shuffle funzionano sulla coda.";
+  playerLoadStatus.textContent = "Carico lo stream audio…";
+  playerLoadStatus.hidden = false;
+  setStatus(`Carico audio: ${item.title}`);
+
+  try {
+    const response = await fetch(`${INVIDIOUS_API}/api/v1/videos/${encodeURIComponent(item.videoId)}?local=false`, {
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) throw new Error(`Invidious API HTTP ${response.status}`);
+    const data = await response.json();
+    if (requestId !== playbackRequestId) return;
+    const streams = (data.adaptiveFormats || []).filter((stream) => stream.type?.startsWith("audio/") && stream.url);
+    const stream = streams.find((candidate) => candidate.type.includes("audio/mp4"))
+      || streams.sort((left, right) => Number(right.bitrate) - Number(left.bitrate))[0];
+    if (!stream) throw new Error("Nessuno stream audio disponibile");
+
+    audio.src = stream.url;
+    audio.load();
+    playerLoadStatus.hidden = true;
+    try {
+      await audio.play();
+      if (requestId === playbackRequestId) setStatus(`In riproduzione: ${item.title}`);
+    } catch {
+      if (requestId === playbackRequestId) setStatus(`Stream pronto: premi play per ascoltare ${item.title}.`);
+    }
+  } catch {
+    if (requestId !== playbackRequestId) return;
+    playerLoadStatus.textContent = "Invidious non è raggiungibile. Puoi aprire il brano su Piped.";
+    playerLoadStatus.hidden = false;
+    setStatus("Errore durante il caricamento dello stream audio.", true);
+  }
 }
 
 function createCard(item) {
