@@ -15,10 +15,15 @@ const viewTitle = document.querySelector("#musicViewTitle");
 const filters = document.querySelector("#musicFilters");
 const status = document.querySelector("#musicStatus");
 const results = document.querySelector("#musicResults");
+const homePlaylistsSection = document.querySelector("#homePlaylistsSection");
+const homePlaylists = document.querySelector("#homePlaylists");
+const homePlaylistCount = document.querySelector("#homePlaylistCount");
 const frame = document.querySelector("#musicFrame");
 const audio = document.querySelector("#musicAudio");
 const playerPlaceholder = document.querySelector("#playerPlaceholder");
+const playerArtwork = document.querySelector("#playerArtwork");
 const playerHeading = document.querySelector("#playerHeading");
+const playerArtist = document.querySelector("#playerArtist");
 const playerOpenLink = document.querySelector("#playerOpenLink");
 const playerNote = document.querySelector("#musicPlayerNote");
 const playerPanel = document.querySelector(".music-player-panel");
@@ -319,6 +324,10 @@ async function playMediaItem(item) {
   const requestId = ++playbackRequestId;
   clearTimeout(playerLoadTimer);
   playerHeading.textContent = item.title;
+  playerArtist.textContent = item.uploader || (isSpotify ? "Spotify" : "YouTube Music");
+  playerArtwork.hidden = useIframe || !item.thumbnail;
+  if (!playerArtwork.hidden) playerArtwork.src = item.thumbnail;
+  playerPlaceholder.hidden = useIframe || Boolean(item.thumbnail);
   playerOpenLink.hidden = false;
   playerPanel.classList.toggle("is-spotify", isSpotify);
   playerPanel.classList.toggle("is-audio", !useIframe);
@@ -335,7 +344,6 @@ async function playMediaItem(item) {
     frame.src = playerUrl.href;
     frame.hidden = false;
     frame.title = `Player ${isSpotify ? "Spotify" : "Piped"}: ${item.title}`;
-    playerPlaceholder.hidden = true;
     playerOpenLink.href = isSpotify
       ? `https://open.spotify.com/playlist/${encodeURIComponent(item.id)}`
       : playerUrl.href;
@@ -359,7 +367,7 @@ async function playMediaItem(item) {
 
   frame.hidden = true;
   frame.src = "about:blank";
-  playerPlaceholder.hidden = true;
+  playerPlaceholder.hidden = Boolean(item.thumbnail);
   audio.hidden = false;
   audio.pause();
   audio.removeAttribute("src");
@@ -375,9 +383,15 @@ async function playMediaItem(item) {
     const response = await fetch(`${INVIDIOUS_API}/api/v1/videos/${encodeURIComponent(item.videoId)}?local=false`, {
       signal: AbortSignal.timeout(15000),
     });
-    if (!response.ok) throw new Error(`Invidious API HTTP ${response.status}`);
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => "");
+      if (/LOGIN_REQUIRED|sign in to confirm|not a bot/i.test(errorBody)) throw new Error("LOGIN_REQUIRED");
+      throw new Error(`Invidious API HTTP ${response.status}`);
+    }
     const data = await response.json();
     if (requestId !== playbackRequestId) return;
+    const upstreamError = [data.error, data.message, data.type].filter((value) => typeof value === "string").join(" ");
+    if (/LOGIN_REQUIRED|sign in to confirm|not a bot/i.test(upstreamError)) throw new Error("LOGIN_REQUIRED");
     const streams = (data.adaptiveFormats || []).filter((stream) => stream.type?.startsWith("audio/") && stream.url);
     const stream = streams.find((candidate) => candidate.type.includes("audio/mp4"))
       || streams.sort((left, right) => Number(right.bitrate) - Number(left.bitrate))[0];
@@ -392,11 +406,16 @@ async function playMediaItem(item) {
     } catch {
       if (requestId === playbackRequestId) setStatus(`Stream pronto: premi play per ascoltare ${item.title}.`);
     }
-  } catch {
+  } catch (error) {
     if (requestId !== playbackRequestId) return;
-    playerLoadStatus.textContent = "Invidious non è raggiungibile. Puoi aprire il brano su Piped.";
+    const loginRequired = /LOGIN_REQUIRED|sign in to confirm|not a bot/i.test(error.message);
+    playerOpenLink.href = `https://music.youtube.com/watch?v=${encodeURIComponent(item.videoId)}`;
+    playerOpenLink.textContent = "Apri YouTube Music ↗";
+    playerLoadStatus.textContent = loginRequired
+      ? "YouTube ha bloccato la richiesta anonima di Invidious. Prova ad aprire il brano con il tuo account o riprova più tardi."
+      : "Invidious non è raggiungibile. Prova il link YouTube Music o riprova più tardi.";
     playerLoadStatus.hidden = false;
-    setStatus("Errore durante il caricamento dello stream audio.", true);
+    setStatus(loginRequired ? "Accesso anonimo temporaneamente bloccato da YouTube." : "Errore durante il caricamento dello stream audio.", true);
   }
 }
 
@@ -457,18 +476,25 @@ function createCard(item) {
   return card;
 }
 
-function renderItems(items, emptyMessage = "Nessun risultato trovato.") {
-  results.replaceChildren();
+function renderItems(items, emptyMessage = "Nessun risultato trovato.", target = results) {
+  target.replaceChildren();
   if (!items.length) {
     const empty = document.createElement("p");
     empty.className = "music-empty";
     empty.textContent = emptyMessage;
-    results.append(empty);
+    target.append(empty);
     return;
   }
   const fragment = document.createDocumentFragment();
   for (const item of items) fragment.append(createCard(item));
-  results.append(fragment);
+  target.append(fragment);
+}
+
+function renderHomePlaylists() {
+  const playlists = library.filter((item) => ["playlist", "spotify-playlist", "converted-playlist"].includes(item.type));
+  homePlaylistsSection.hidden = activeView !== "home" || playlists.length === 0;
+  homePlaylistCount.textContent = `${playlists.length} ${playlists.length === 1 ? "playlist" : "playlist"}`;
+  if (playlists.length) renderItems(playlists, "", homePlaylists);
 }
 
 function toggleSaved(item) {
@@ -483,9 +509,12 @@ function toggleSaved(item) {
   }
   saveLibrary();
   if (activeView === "library") renderLibrary();
+  else if (activeView === "home") renderHomePlaylists();
 }
 
 async function loadTrending() {
+  if (activeView === "home") renderHomePlaylists();
+  else homePlaylistsSection.hidden = true;
   results.replaceChildren();
   setStatus("Carico le tendenze…");
   try {
@@ -782,6 +811,8 @@ async function performSearch(query, filter = searchFilter) {
 
 async function showView(view) {
   updateNavigation(view);
+  homePlaylistsSection.hidden = view !== "home";
+  if (view === "home") renderHomePlaylists();
   spotifyImport.hidden = view !== "library";
   if (view === "search") {
     viewEyebrow.textContent = "Esplora il catalogo";
@@ -937,6 +968,7 @@ window.addEventListener("storage", (event) => {
   if (event.key !== LIBRARY_KEY) return;
   library = loadLibrary();
   if (activeView === "library") renderLibrary();
+  else if (activeView === "home") renderHomePlaylists();
 });
 
 showView("home");

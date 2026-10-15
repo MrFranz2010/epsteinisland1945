@@ -57,6 +57,16 @@
           <button class="is-active" type="button" data-filter="music_songs" aria-pressed="true">Brani</button>
           <button type="button" data-filter="music_playlists" aria-pressed="false">Playlist</button>
         </div>
+        <section class="music-shelf" id="homePlaylistsSection" aria-labelledby="homePlaylistsHeading" hidden>
+          <div class="music-shelf-heading">
+            <div>
+              <p class="eyebrow">La tua libreria</p>
+              <h3 id="homePlaylistsHeading">Le tue playlist</h3>
+            </div>
+            <span class="music-shelf-count" id="homePlaylistCount"></span>
+          </div>
+          <div class="music-results music-playlist-shelf" id="homePlaylists"></div>
+        </section>
         <section class="spotify-import" id="spotifyImport" aria-labelledby="spotifyImportHeading" hidden>
           <h3 id="spotifyImportHeading">Le tue playlist Spotify</h3>
           <form id="spotifyForm">
@@ -92,10 +102,12 @@
           <div>
             <p class="eyebrow">In ascolto</p>
             <h2 id="playerHeading">Scegli un brano</h2>
+            <p class="music-player-artist" id="playerArtist">La tua musica, senza interruzioni.</p>
           </div>
           <a class="music-open-link" id="playerOpenLink" href="https://piped.video/" target="_blank" rel="noopener noreferrer" hidden>Apri ↗</a>
         </div>
         <div class="music-player-frame" id="musicStage">
+          <img class="music-player-artwork" id="playerArtwork" alt="" hidden>
           <div class="music-player-empty" id="playerPlaceholder">
             <span aria-hidden="true">♫</span>
             <p>La musica che cerchi, tutta qui.</p>
