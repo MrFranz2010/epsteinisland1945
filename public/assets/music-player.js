@@ -4,14 +4,6 @@ const PIPED_APIS = [
   "https://pipedapi.adminforge.de",
   "https://pipedapi.phoenixthrush.com",
 ];
-
-const INVIDIOUS_APIS = [
-  "https://iv.melmac.space",
-  "https://invidious.private.coffee",
-  "https://yewtu.be",
-  "https://invidious.privacydev.net",
-];
-
 const LIBRARY_KEY = "epstein-island-music-library-v1";
 
 const searchForm = document.querySelector("#musicSearchForm");
@@ -137,33 +129,6 @@ async function fetchPiped(path) {
     }
   }
   throw lastError || new Error("Piped API non disponibile");
-}
-
-async function fetchInvidious(path) {
-  let lastError;
-  for (const api of INVIDIOUS_APIS) {
-    try {
-      const response = await fetch(new URL(path, `${api}/`), {
-        signal: AbortSignal.timeout(12000),
-      });
-      if (!response.ok) {
-        const errorBody = await response.text().catch(() => "");
-        if (/LOGIN_REQUIRED|sign in to confirm|not a bot/i.test(errorBody)) {
-          throw new Error("LOGIN_REQUIRED");
-        }
-        throw new Error(`Invidious API HTTP ${response.status}`);
-      }
-      const data = await response.json();
-      const upstreamError = [data.error, data.message, data.type].filter((value) => typeof value === "string").join(" ");
-      if (/LOGIN_REQUIRED|sign in to confirm|not a bot/i.test(upstreamError)) {
-        throw new Error("LOGIN_REQUIRED");
-      }
-      return data;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-  throw lastError || new Error("Invidious API non disponibile");
 }
 
 function parseYoutubeLink(value) {
@@ -406,21 +371,22 @@ async function playMediaItem(item) {
   audio.hidden = false;
   audio.pause();
   audio.removeAttribute("src");
-  playerOpenLink.href = new URL(item.playlistId ? `/playlist?list=${encodeURIComponent(item.playlistId)}` : `/watch?v=${encodeURIComponent(item.videoId)}`, "https://piped.video/").href;
-  playerOpenLink.href += `${playerOpenLink.href.includes("?") ? "&" : "?"}instance=${encodeURIComponent(PIPED_APIS[0])}`;
-  playerOpenLink.textContent = "Apri su Piped ↗";
-  playerNote.textContent = "Audio via Invidious. Repeat e shuffle funzionano sulla coda.";
-  playerLoadStatus.textContent = "Carico lo stream audio…";
+  playerOpenLink.href = `https://music.youtube.com/watch?v=${encodeURIComponent(item.videoId)}`;
+  playerOpenLink.textContent = "Apri YouTube Music ↗";
+  playerNote.textContent = "Audio via Piped. Repeat e shuffle funzionano sulla coda.";
+  playerLoadStatus.textContent = "Carico lo stream audio da Piped…";
   playerLoadStatus.hidden = false;
   setStatus(`Carico audio: ${item.title}`);
 
   try {
-    const data = await fetchInvidious(`api/v1/videos/${encodeURIComponent(item.videoId)}?local=false`);
+    const data = await fetchPiped(`/streams/${encodeURIComponent(item.videoId)}`);
     if (requestId !== playbackRequestId) return;
-    const streams = (data.adaptiveFormats || []).filter((stream) => stream.type?.startsWith("audio/") && stream.url);
-    const stream = streams.find((candidate) => candidate.type.includes("audio/mp4"))
-      || streams.sort((left, right) => Number(right.bitrate) - Number(left.bitrate))[0];
-    if (!stream) throw new Error("Nessuno stream audio disponibile");
+    
+    const audioStreams = Array.isArray(data.audioStreams) ? data.audioStreams : [];
+    const stream = audioStreams.find((s) => s.mimeType?.includes("audio/mp4") && s.url)
+      || audioStreams.sort((a, b) => Number(b.bitrate || 0) - Number(a.bitrate || 0))[0];
+
+    if (!stream || !stream.url) throw new Error("Nessuno stream audio disponibile");
 
     audio.src = stream.url;
     audio.load();
@@ -433,14 +399,9 @@ async function playMediaItem(item) {
     }
   } catch (error) {
     if (requestId !== playbackRequestId) return;
-    const loginRequired = /LOGIN_REQUIRED|sign in to confirm|not a bot/i.test(error.message);
-    playerOpenLink.href = `https://music.youtube.com/watch?v=${encodeURIComponent(item.videoId)}`;
-    playerOpenLink.textContent = "Apri YouTube Music ↗";
-    playerLoadStatus.textContent = loginRequired
-      ? "YouTube ha bloccato la richiesta anonima. Prova ad aprire il brano con il tuo account o riprova più tardi."
-      : "Le istanze Invidious non sono raggiungibili. Prova il link YouTube Music o riprova più tardi.";
+    playerLoadStatus.textContent = "Impossibile recuperare lo stream. Prova il link YouTube Music ↗.";
     playerLoadStatus.hidden = false;
-    setStatus(loginRequired ? "Accesso anonimo temporaneamente bloccato da YouTube." : "Errore durante il caricamento dello stream audio.", true);
+    setStatus("Errore durante il caricamento dello stream audio.", true);
   }
 }
 
@@ -997,4 +958,3 @@ window.addEventListener("storage", (event) => {
 });
 
 showView("home");
-
