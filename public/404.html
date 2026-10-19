@@ -15,10 +15,23 @@
     p { color: #5d554a; font-size: 1.05rem; line-height: 1.6; }
     a { display: inline-block; margin-top: 12px; padding: 12px 16px; border: 2px solid #17140f; border-radius: 6px; background: #ff4f1f; box-shadow: 4px 4px 0 #17140f; color: #17140f; font-weight: 700; text-decoration: none; }
     a:active { transform: translate(4px, 4px); box-shadow: none; }
+    :root[data-theme="dark"] { color-scheme: dark; background: #15120e; color: #f1e9da; }
+    :root[data-theme="dark"] body { background: radial-gradient(rgba(241,233,218,.09) 1px, transparent 1.4px) 0 0 / 22px 22px, #15120e; }
+    :root[data-theme="dark"] .eyebrow, :root[data-theme="dark"] p { color: #b5ab98; }
+    :root[data-theme="dark"] .eyebrow::before, :root[data-theme="dark"] a { border-color: #f1e9da; }
+    :root[data-theme="dark"] a { box-shadow: 4px 4px 0 #f1e9da; }
   </style>
+  <script>
+    (() => {
+      let theme;
+      try { theme = localStorage.getItem('epstein-theme'); } catch {}
+      theme ||= matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
 </head>
 <body>
-  <p class="eyebrow">404 · Fuori pista</p>
+  <p class="eyebrow">404</p>
   <h1>Pagina non trovata<span class="accent">.</span></h1>
   <p>Questo gioco o questa pagina non è disponibile.</p>
   <a href="/">Torna al catalogo</a>

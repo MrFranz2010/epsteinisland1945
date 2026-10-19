@@ -11,7 +11,6 @@ const searchForm = document.querySelector("#musicSearchForm");
 const queryInput = document.querySelector("#musicQuery");
 const suggestions = document.querySelector("#musicSuggestions");
 const navButtons = [...document.querySelectorAll(".music-nav-button")];
-const viewEyebrow = document.querySelector("#musicViewEyebrow");
 const viewTitle = document.querySelector("#musicViewTitle");
 const filters = document.querySelector("#musicFilters");
 const status = document.querySelector("#musicStatus");
@@ -835,7 +834,6 @@ async function performSearch(query, filter = searchFilter) {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) {
     updateNavigation("search");
-    viewEyebrow.textContent = "Esplora il catalogo";
     viewTitle.textContent = "Cerca musica";
     showFilters(true);
     renderItems([], "Cerca un brano, un artista o una playlist.");
@@ -862,10 +860,11 @@ async function performSearch(query, filter = searchFilter) {
   searchFilter = filter;
   updateNavigation("search");
   showFilters(true);
-  viewEyebrow.textContent = filter === "music_playlists" ? "Playlist" : "Brani";
   viewTitle.textContent = `Risultati per ${trimmedQuery}`;
   results.replaceChildren();
   setStatus("Cerco…");
+  clearTimeout(suggestionTimer);
+  suggestionRequest += 1;
   hideSuggestions();
 
   const params = new URLSearchParams({ q: trimmedQuery, filter });
@@ -889,7 +888,6 @@ async function showView(view) {
   if (view === "home") renderHomePlaylists();
   spotifyImport.hidden = view !== "library";
   if (view === "search") {
-    viewEyebrow.textContent = "Esplora il catalogo";
     viewTitle.textContent = currentQuery ? `Risultati per ${currentQuery}` : "Cerca musica";
     showFilters(true);
     if (currentQuery) await performSearch(currentQuery, searchFilter);
@@ -902,17 +900,14 @@ async function showView(view) {
 
   showFilters(false);
   if (view === "library") {
-    viewEyebrow.textContent = "Salvata su questo dispositivo";
     viewTitle.textContent = "La tua raccolta";
     renderLibrary();
     return;
   }
 
   if (view === "trending") {
-    viewEyebrow.textContent = "Italia";
     viewTitle.textContent = "Tendenze";
   } else {
-    viewEyebrow.textContent = "La selezione di oggi";
     viewTitle.textContent = "Per te";
   }
   await loadTrending();

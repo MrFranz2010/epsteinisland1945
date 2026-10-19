@@ -7,6 +7,7 @@
   <meta name="description" content="Cerca musica, scopri le tendenze e salva brani e playlist.">
   <title>Musica | Epstein island</title>
   <link rel="stylesheet" href="../assets/site.css">
+  <script src="../assets/theme.js"></script>
   <script type="module" src="../assets/music-player.js"></script>
 </head>
 <body>
@@ -16,10 +17,6 @@
   </header>
   <main class="music-client">
     <div class="music-topline">
-      <div class="music-branding">
-        <p class="eyebrow">Music</p>
-        <h1 id="musicHeading">Ascolta <span class="accent">quello che vuoi</span></h1>
-      </div>
       <form class="music-search" id="musicSearchForm" role="search" autocomplete="off">
         <label class="visually-hidden" for="musicQuery">Cerca brani, artisti e playlist</label>
         <span class="music-search-icon" aria-hidden="true">⌕</span>
@@ -50,7 +47,6 @@
 
       <section class="music-main" aria-labelledby="musicViewTitle">
         <div class="music-view-heading">
-          <p class="eyebrow" id="musicViewEyebrow">La selezione di oggi</p>
           <h2 id="musicViewTitle">Per te</h2>
         </div>
         <div class="music-filters" id="musicFilters" role="group" aria-label="Tipo di risultati" hidden>
@@ -60,8 +56,7 @@
         <section class="music-shelf" id="homePlaylistsSection" aria-labelledby="homePlaylistsHeading" hidden>
           <div class="music-shelf-heading">
             <div>
-              <p class="eyebrow">La tua libreria</p>
-              <h3 id="homePlaylistsHeading">Le tue playlist</h3>
+                            <h3 id="homePlaylistsHeading">Le tue playlist</h3>
             </div>
             <span class="music-shelf-count" id="homePlaylistCount"></span>
           </div>
@@ -100,9 +95,8 @@
       <aside class="music-player-panel" aria-labelledby="playerHeading">
         <div class="music-player-heading">
           <div>
-            <p class="eyebrow">In ascolto</p>
-            <h2 id="playerHeading">Scegli un brano</h2>
-            <p class="music-player-artist" id="playerArtist">La tua musica, senza interruzioni.</p>
+                        <h2 id="playerHeading">Scegli un brano</h2>
+            <p class="music-player-artist" id="playerArtist"></p>
           </div>
           <a class="music-open-link" id="playerOpenLink" href="https://piped.video/" target="_blank" rel="noopener noreferrer" hidden>Apri ↗</a>
         </div>
@@ -110,7 +104,6 @@
           <img class="music-player-artwork" id="playerArtwork" alt="" referrerpolicy="no-referrer" hidden>
           <div class="music-player-empty" id="playerPlaceholder">
             <span aria-hidden="true">♫</span>
-            <p>La musica che cerchi, tutta qui.</p>
           </div>
           <iframe id="musicFrame" title="Player musicale" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen hidden></iframe>
         </div>
@@ -123,10 +116,9 @@
           <button type="button" id="repeatQueue" aria-label="Ripetizione disattivata" title="Cambia modalità di ripetizione">↻</button>
           <button type="button" id="shuffleQueue" aria-label="Attiva riproduzione casuale" aria-pressed="false" title="Riproduzione casuale">⇄</button>
         </div>
-        <p class="music-player-note" id="musicPlayerNote">Player fornito da Piped. La disponibilità dipende dall’istanza esterna.</p>
+        <p class="music-player-note" id="musicPlayerNote"></p>
       </aside>
     </div>
   </main>
-  <footer>Epstein island · Player musicale incorporato</footer>
 </body>
 </html>
