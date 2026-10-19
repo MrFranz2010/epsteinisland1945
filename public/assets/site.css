@@ -91,8 +91,6 @@ h2 { margin: 0; font-size: 1.15rem; font-weight: 800; letter-spacing: -.01em; }
 .accent { color: var(--accent); }
 .muted { color: var(--muted); font-size: .85rem; }
 .intro p:not(.eyebrow) { max-width: 680px; margin: 18px 0 0; color: var(--muted); font-size: 1.05rem; line-height: 1.6; }
-.catalog-intro { display: grid; grid-template-columns: 1.4fr 1fr; align-items: end; gap: 32px; margin-bottom: 54px; padding-bottom: 28px; border-bottom: 2px solid var(--border); }
-.catalog-intro p:not(.eyebrow) { max-width: 390px; padding-bottom: 5px; }
 .section-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
 .catalog-section > .section-heading h2 { font-size: clamp(1.4rem,2.6vw,1.9rem); letter-spacing: -.03em; }
 .section-heading .muted { font-family: var(--font-mono); font-size: .78rem; }
@@ -175,10 +173,7 @@ button:disabled { opacity: .5; cursor: wait; transform: none; box-shadow: 3px 3p
 .game-stage iframe { position: absolute; inset: 0; display: block; width: 100%; height: 100%; border: 0; background: var(--stage); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; clip-path: inset(50%); }
 .music-client { width: min(1500px,calc(100% - 40px)); margin: 0 auto; padding: 34px 0 48px; }
-.music-topline { display: grid; grid-template-columns: minmax(230px,.75fr) minmax(300px,1fr); align-items: end; gap: 34px; margin-bottom: 30px; padding-bottom: 24px; border-bottom: 2px solid var(--border); }
-.music-branding .eyebrow, .music-view-heading .eyebrow, .music-player-heading .eyebrow { margin: 0 0 8px; }
-.music-branding h1 { font-size: clamp(2rem,3.4vw,3rem); line-height: .95; letter-spacing: -.04em; }
-.music-branding .accent { display: inline-block; padding: 0 .12em; background: var(--sun); color: var(--text); transform: rotate(-1.5deg); }
+.music-topline { display: grid; grid-template-columns: 1fr; align-items: end; gap: 34px; margin-bottom: 30px; padding-bottom: 24px; border-bottom: 2px solid var(--border); }
 .music-search { position: relative; display: grid; grid-template-columns: 36px minmax(0,1fr) auto; align-items: center; min-width: 0; padding: 5px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); }
 .music-search:focus-within { box-shadow: 4px 4px 0 var(--blue); }
 .music-search-icon { color: var(--text); font-size: 1.8rem; line-height: 1; text-align: center; }
@@ -265,6 +260,7 @@ button:disabled { opacity: .5; cursor: wait; transform: none; box-shadow: 3px 3p
 .music-player-empty span { color: var(--sun); font-size: 2.7rem; line-height: 1; }
 .music-player-empty p { max-width: 190px; margin: 12px 0 0; font-size: .86rem; line-height: 1.45; }
 .music-player-load-status { margin: 10px 0 0; color: var(--muted); font-size: .78rem; line-height: 1.5; }
+.music-player-note:empty, .music-player-artist:empty { display: none; }
 .music-player-note { margin: 12px 0 0; color: var(--muted); font-size: .72rem; line-height: 1.5; }
 .fpv-game-stage { aspect-ratio: 4 / 3; }
 .placeholder { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; color: var(--stage-text); text-align: center; background: radial-gradient(rgba(255,255,255,.08) 1px, transparent 1.4px) 0 0 / 18px 18px, var(--stage); }
@@ -330,7 +326,7 @@ body.pseudo-fullscreen-active { overflow: hidden; overscroll-behavior: none; }
 .header-actions { display: flex; align-items: center; gap: 12px; }
 .theme-toggle { width: 44px; min-height: 42px; padding: 0; }
 .brand-mark, .music-nav-link, .music-nav-link:hover, .category-tag, .new-tag, .requirement-tag,
-.primary, .primary:hover, .music-branding .accent, .music-search button,
+.primary, .primary:hover, .music-search button,
 .spotify-import button, .spotify-import button:hover, .spotify-converter button, .spotify-converter button:hover,
 .music-card-cover span, .music-suggestions button:hover, .favorite-button[aria-pressed="true"],
 .music-queue-controls button.is-active, .music-queue-controls #repeatQueue[data-mode="one"], .music-queue-controls #repeatQueue[data-mode="all"],
@@ -360,8 +356,6 @@ body.pseudo-fullscreen-active { overflow: hidden; overscroll-behavior: none; }
   .game-page-heading { gap: 12px; }
   .game-page-icon { width: 80px; height: 64px; }
   .game-page-heading h1 { font-size: clamp(1.8rem,9vw,2.6rem); }
-  .catalog-intro, .below-grid, .lobby-forms, .profile-controls { grid-template-columns: 1fr; gap: 16px; }
-  .catalog-intro { margin-bottom: 32px; }
   .catalog-tools { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
   .catalog-tools label:first-child { grid-column: 1 / -1; }
   .game-toolbar { align-items: flex-start; }
@@ -371,7 +365,6 @@ body.pseudo-fullscreen-active { overflow: hidden; overscroll-behavior: none; }
   .game-shell { box-shadow: 4px 4px 0 var(--shadow-color); }
   .game-card-body { padding: 18px; }
   .music-client { width: calc(100% - 24px); padding-top: 24px; }
-  .music-branding h1 { font-size: 2.1rem; }
   .music-topline { gap: 16px; margin-bottom: 22px; }
   .music-workspace { grid-template-columns: minmax(0,1fr); gap: 16px; }
   .music-sidebar { position: static; }
