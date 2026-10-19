@@ -64,6 +64,9 @@ frame.addEventListener("load", () => {
   if (!frame.src.startsWith("https://")) return;
   clearTimeout(playerLoadTimer);
   playerLoadStatus.hidden = true;
+  if (frame.src.startsWith(`${YOUTUBE_EMBED_ORIGIN}/embed/videoseries`)) {
+    setStatus(`Playlist pronta: ${playerHeading.textContent}`);
+  }
 });
 
 function handleTrackEnded(restartTrack) {
@@ -204,7 +207,13 @@ function normalizeItem(item) {
   let thumbnail = "";
   try {
     const candidate = new URL(item.thumbnail);
-    if (candidate.protocol === "https:") thumbnail = candidate.href;
+    const imageHost = candidate.searchParams.get("host") || "";
+    if (/(^|\.)(ytimg\.com|ggpht\.com|googleusercontent\.com)$/.test(imageHost)) {
+      candidate.searchParams.delete("host");
+      thumbnail = `https://${imageHost}${candidate.pathname}${candidate.search}`;
+    } else if (candidate.protocol === "https:") {
+      thumbnail = candidate.href;
+    }
   } catch {
     thumbnail = "";
   }
@@ -339,7 +348,10 @@ async function playMediaItem(item) {
     const playerUrl = isSpotify
       ? new URL(`/embed/playlist/${encodeURIComponent(item.id)}`, "https://open.spotify.com/")
       : new URL("/embed/videoseries", YOUTUBE_EMBED_ORIGIN);
-    if (!isSpotify) playerUrl.searchParams.set("list", item.playlistId);
+    if (!isSpotify) {
+      playerUrl.searchParams.set("list", item.playlistId);
+      playerUrl.searchParams.set("autoplay", "1");
+    }
     audio.pause();
     audio.removeAttribute("src");
     audio.hidden = true;
@@ -490,9 +502,10 @@ function createCard(item) {
   coverButton.setAttribute("aria-label", `Riproduci ${item.title}`);
   if (item.thumbnail) {
     const image = document.createElement("img");
+    image.referrerPolicy = "no-referrer";
+    image.loading = "lazy";
     image.src = item.thumbnail;
     image.alt = "";
-    image.loading = "lazy";
     coverButton.append(image);
   }
   const playMark = document.createElement("span");
