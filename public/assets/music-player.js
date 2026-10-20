@@ -4,13 +4,13 @@ const PIPED_APIS = [
   "https://pipedapi.adminforge.de",
 ];
 const INVIDIOUS_API = "https://invidious.f5.si";
+const YOUTUBE_EMBED_ORIGIN = "https://www.youtube-nocookie.com";
 const LIBRARY_KEY = "epstein-island-music-library-v1";
 
 const searchForm = document.querySelector("#musicSearchForm");
 const queryInput = document.querySelector("#musicQuery");
 const suggestions = document.querySelector("#musicSuggestions");
 const navButtons = [...document.querySelectorAll(".music-nav-button")];
-const viewEyebrow = document.querySelector("#musicViewEyebrow");
 const viewTitle = document.querySelector("#musicViewTitle");
 const filters = document.querySelector("#musicFilters");
 const status = document.querySelector("#musicStatus");
@@ -57,23 +57,21 @@ let repeatMode = "off";
 let shuffleEnabled = false;
 let playerLoadTimer;
 let playbackRequestId = 0;
+let youtubeApiPromise;
 
 frame.addEventListener("load", () => {
   if (!frame.src.startsWith("https://")) return;
   clearTimeout(playerLoadTimer);
-  if (frame.src.startsWith("https://piped.video/")) {
-    playerLoadStatus.textContent = "Player collegato. Se non parte, usa Apri ↗.";
-    playerLoadStatus.hidden = false;
-  } else {
-    playerLoadStatus.hidden = true;
+  playerLoadStatus.hidden = true;
+  if (frame.src.startsWith(`${YOUTUBE_EMBED_ORIGIN}/embed/videoseries`)) {
+    setStatus(`Playlist pronta: ${playerHeading.textContent}`);
   }
 });
 
-audio.addEventListener("ended", () => {
+function handleTrackEnded(restartTrack) {
   if (playbackQueueIndex < 0) return;
   if (repeatMode === "one") {
-    audio.currentTime = 0;
-    audio.play().catch(() => setStatus("Premi play per ripetere il brano."));
+    restartTrack();
     return;
   }
   if (playbackQueueIndex < playbackOrder.length - 1) {
@@ -83,7 +81,12 @@ audio.addEventListener("ended", () => {
   } else {
     setStatus("Playlist terminata.");
   }
-});
+}
+
+audio.addEventListener("ended", () => handleTrackEnded(() => {
+  audio.currentTime = 0;
+  audio.play().catch(() => setStatus("Premi play per ripetere il brano."));
+}));
 
 audio.addEventListener("error", () => {
   if (audio.hidden) return;
@@ -203,10 +206,18 @@ function normalizeItem(item) {
   let thumbnail = "";
   try {
     const candidate = new URL(item.thumbnail);
-    if (candidate.protocol === "https:") thumbnail = candidate.href;
+    const imageHost = candidate.searchParams.get("host") || "";
+    if (/(^|\.)(ytimg\.com|ggpht\.com|googleusercontent\.com)$/.test(imageHost)) {
+      candidate.searchParams.delete("host");
+      thumbnail = `https://${imageHost}${candidate.pathname}${candidate.search}`;
+    } else if (candidate.protocol === "https:") {
+      thumbnail = candidate.href;
+    }
   } catch {
     thumbnail = "";
   }
+
+  if (!isPlaylist) thumbnail = `https://i.ytimg.com/vi/${media.videoId}/hqdefault.jpg`;
 
   return {
     id,
@@ -335,27 +346,29 @@ async function playMediaItem(item) {
   if (useIframe) {
     const playerUrl = isSpotify
       ? new URL(`/embed/playlist/${encodeURIComponent(item.id)}`, "https://open.spotify.com/")
-      : new URL("/playlist", "https://piped.video/");
-    if (!isSpotify && item.playlistId) playerUrl.searchParams.set("list", item.playlistId);
-    if (!isSpotify) playerUrl.searchParams.set("instance", PIPED_APIS[0]);
+      : new URL("/embed/videoseries", YOUTUBE_EMBED_ORIGIN);
+    if (!isSpotify) {
+      playerUrl.searchParams.set("list", item.playlistId);
+      playerUrl.searchParams.set("autoplay", "1");
+    }
     audio.pause();
     audio.removeAttribute("src");
     audio.hidden = true;
     frame.src = playerUrl.href;
     frame.hidden = false;
-    frame.title = `Player ${isSpotify ? "Spotify" : "Piped"}: ${item.title}`;
+    frame.title = `Player ${isSpotify ? "Spotify" : "YouTube"}: ${item.title}`;
     playerOpenLink.href = isSpotify
       ? `https://open.spotify.com/playlist/${encodeURIComponent(item.id)}`
-      : playerUrl.href;
-    playerOpenLink.textContent = isSpotify ? "Apri Spotify ↗" : "Apri ↗";
+      : `https://music.youtube.com/playlist?list=${encodeURIComponent(item.playlistId)}`;
+    playerOpenLink.textContent = isSpotify ? "Apri Spotify ↗" : "Apri YouTube Music ↗";
     playerNote.textContent = isSpotify
       ? "Player ufficiale Spotify. La riproduzione può richiedere l’accesso a Spotify."
-      : "Playlist fornita da Piped. Se non si avvia, usa Apri ↗.";
+      : "Playlist riprodotta con il player di YouTube.";
     playerLoadStatus.hidden = !isYoutubePlaylist;
-    playerLoadStatus.textContent = isYoutubePlaylist ? "Connessione al player Piped…" : "";
+    playerLoadStatus.textContent = isYoutubePlaylist ? "Connessione al player YouTube…" : "";
     if (isYoutubePlaylist) {
       playerLoadTimer = setTimeout(() => {
-        playerLoadStatus.textContent = "Piped non risponde. Prova il link Apri ↗ oppure riprova tra poco.";
+        playerLoadStatus.textContent = "Il player non risponde. Prova il link Apri YouTube Music ↗ oppure riprova tra poco.";
         playerLoadStatus.hidden = false;
       }, 15000);
     } else {
@@ -381,7 +394,7 @@ async function playMediaItem(item) {
 
   try {
     const response = await fetch(`${INVIDIOUS_API}/api/v1/videos/${encodeURIComponent(item.videoId)}?local=false`, {
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(8000),
     });
     if (!response.ok) {
       const errorBody = await response.text().catch(() => "");
@@ -406,17 +419,76 @@ async function playMediaItem(item) {
     } catch {
       if (requestId === playbackRequestId) setStatus(`Stream pronto: premi play per ascoltare ${item.title}.`);
     }
-  } catch (error) {
+  } catch {
     if (requestId !== playbackRequestId) return;
-    const loginRequired = /LOGIN_REQUIRED|sign in to confirm|not a bot/i.test(error.message);
-    playerOpenLink.href = `https://music.youtube.com/watch?v=${encodeURIComponent(item.videoId)}`;
-    playerOpenLink.textContent = "Apri YouTube Music ↗";
-    playerLoadStatus.textContent = loginRequired
-      ? "YouTube ha bloccato la richiesta anonima di Invidious. Prova ad aprire il brano con il tuo account o riprova più tardi."
-      : "Invidious non è raggiungibile. Prova il link YouTube Music o riprova più tardi.";
-    playerLoadStatus.hidden = false;
-    setStatus(loginRequired ? "Accesso anonimo temporaneamente bloccato da YouTube." : "Errore durante il caricamento dello stream audio.", true);
+    playYoutubeEmbed(item, requestId);
   }
+}
+
+function loadYoutubeApi() {
+  if (window.YT?.Player) return Promise.resolve(window.YT);
+  youtubeApiPromise ||= new Promise((resolve, reject) => {
+    const previousReady = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      previousReady?.();
+      resolve(window.YT);
+    };
+    const script = document.createElement("script");
+    script.src = "https://www.youtube.com/iframe_api";
+    script.onerror = () => {
+      youtubeApiPromise = null;
+      script.remove();
+      reject(new Error("YouTube IFrame API non disponibile"));
+    };
+    document.head.append(script);
+  });
+  return youtubeApiPromise;
+}
+
+function playYoutubeEmbed(item, requestId) {
+  const embedUrl = new URL(`/embed/${encodeURIComponent(item.videoId)}`, YOUTUBE_EMBED_ORIGIN);
+  embedUrl.searchParams.set("autoplay", "1");
+  embedUrl.searchParams.set("playsinline", "1");
+  embedUrl.searchParams.set("enablejsapi", "1");
+  embedUrl.searchParams.set("origin", location.origin);
+
+  audio.pause();
+  audio.removeAttribute("src");
+  audio.hidden = true;
+  playerArtwork.hidden = true;
+  playerPlaceholder.hidden = true;
+  playerPanel.classList.remove("is-audio");
+  frame.src = embedUrl.href;
+  frame.hidden = false;
+  frame.title = `Player YouTube: ${item.title}`;
+  playerOpenLink.href = `https://music.youtube.com/watch?v=${encodeURIComponent(item.videoId)}`;
+  playerOpenLink.textContent = "Apri YouTube Music ↗";
+  playerNote.textContent = "Stream audio non disponibile: brano riprodotto con il player di YouTube.";
+  playerLoadStatus.hidden = true;
+  setStatus(`In riproduzione: ${item.title}`);
+
+  loadYoutubeApi().then((YT) => {
+    if (requestId !== playbackRequestId) return;
+    const player = new YT.Player(frame, {
+      events: {
+        onStateChange: (event) => {
+          if (requestId !== playbackRequestId || event.data !== YT.PlayerState.ENDED) return;
+          handleTrackEnded(() => {
+            player.seekTo(0);
+            player.playVideo();
+          });
+        },
+        onError: () => {
+          if (requestId !== playbackRequestId) return;
+          playerLoadStatus.textContent = "Questo brano non può essere riprodotto qui. Aprilo con il link YouTube Music ↗.";
+          playerLoadStatus.hidden = false;
+          setStatus(`Brano non disponibile: ${item.title}`, true);
+        },
+      },
+    });
+  }).catch(() => {
+    if (requestId === playbackRequestId) setStatus(`In riproduzione: ${item.title}. Il passaggio automatico al brano successivo non è disponibile.`);
+  });
 }
 
 function createCard(item) {
@@ -429,9 +501,10 @@ function createCard(item) {
   coverButton.setAttribute("aria-label", `Riproduci ${item.title}`);
   if (item.thumbnail) {
     const image = document.createElement("img");
+    image.referrerPolicy = "no-referrer";
+    image.loading = "lazy";
     image.src = item.thumbnail;
     image.alt = "";
-    image.loading = "lazy";
     coverButton.append(image);
   }
   const playMark = document.createElement("span");
@@ -761,7 +834,6 @@ async function performSearch(query, filter = searchFilter) {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) {
     updateNavigation("search");
-    viewEyebrow.textContent = "Esplora il catalogo";
     viewTitle.textContent = "Cerca musica";
     showFilters(true);
     renderItems([], "Cerca un brano, un artista o una playlist.");
@@ -788,10 +860,11 @@ async function performSearch(query, filter = searchFilter) {
   searchFilter = filter;
   updateNavigation("search");
   showFilters(true);
-  viewEyebrow.textContent = filter === "music_playlists" ? "Playlist" : "Brani";
   viewTitle.textContent = `Risultati per ${trimmedQuery}`;
   results.replaceChildren();
   setStatus("Cerco…");
+  clearTimeout(suggestionTimer);
+  suggestionRequest += 1;
   hideSuggestions();
 
   const params = new URLSearchParams({ q: trimmedQuery, filter });
@@ -815,7 +888,6 @@ async function showView(view) {
   if (view === "home") renderHomePlaylists();
   spotifyImport.hidden = view !== "library";
   if (view === "search") {
-    viewEyebrow.textContent = "Esplora il catalogo";
     viewTitle.textContent = currentQuery ? `Risultati per ${currentQuery}` : "Cerca musica";
     showFilters(true);
     if (currentQuery) await performSearch(currentQuery, searchFilter);
@@ -828,17 +900,14 @@ async function showView(view) {
 
   showFilters(false);
   if (view === "library") {
-    viewEyebrow.textContent = "Salvata su questo dispositivo";
     viewTitle.textContent = "La tua raccolta";
     renderLibrary();
     return;
   }
 
   if (view === "trending") {
-    viewEyebrow.textContent = "Italia";
     viewTitle.textContent = "Tendenze";
   } else {
-    viewEyebrow.textContent = "La selezione di oggi";
     viewTitle.textContent = "Per te";
   }
   await loadTrending();

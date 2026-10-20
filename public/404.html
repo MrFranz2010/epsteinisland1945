@@ -3,20 +3,35 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b0d12">
+  <meta name="theme-color" content="#f1ebdf">
   <title>Pagina non trovata — Epstein Island</title>
   <style>
-    :root { color-scheme: dark; font-family: "Trebuchet MS", "Avenir Next", sans-serif; background: #0b0d12; color: #f4f7fb; }
-    body { box-sizing: border-box; min-height: 100vh; margin: 0; padding: 10vh max(24px, calc((100vw - 900px) / 2)); background: radial-gradient(ellipse at 50% -20%, rgba(168,216,110,.1), transparent 55%), #0b0d12; }
-    .eyebrow { color: #a8d86e; font-size: .8rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
-    h1 { font-size: clamp(2.3rem, 7vw, 4.8rem); line-height: 1; letter-spacing: -.055em; }
-    .accent { color: #a8d86e; }
-    p { color: #9ba6b7; line-height: 1.65; }
-    a { display: inline-block; margin-top: 12px; padding: 12px 16px; border-radius: 10px; background: #a8d86e; color: #10150a; font-weight: 750; text-decoration: none; }
+    :root { color-scheme: light; font-family: "Avenir Next", system-ui, sans-serif; background: #f1ebdf; color: #17140f; }
+    body { box-sizing: border-box; min-height: 100vh; margin: 0; padding: 10vh max(24px, calc((100vw - 900px) / 2)); background: radial-gradient(rgba(23,20,15,.13) 1px, transparent 1.4px) 0 0 / 22px 22px, #f1ebdf; }
+    .eyebrow { display: flex; align-items: center; gap: 8px; color: #5d554a; font-family: ui-monospace, Menlo, monospace; font-size: .8rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+    .eyebrow::before { content: ""; width: 10px; height: 10px; border: 2px solid #17140f; background: #ff4f1f; }
+    h1 { font-size: clamp(2.6rem, 8vw, 5.6rem); font-weight: 800; line-height: .92; letter-spacing: -.045em; text-transform: uppercase; }
+    .accent { color: #ff4f1f; }
+    p { color: #5d554a; font-size: 1.05rem; line-height: 1.6; }
+    a { display: inline-block; margin-top: 12px; padding: 12px 16px; border: 2px solid #17140f; border-radius: 6px; background: #ff4f1f; box-shadow: 4px 4px 0 #17140f; color: #17140f; font-weight: 700; text-decoration: none; }
+    a:active { transform: translate(4px, 4px); box-shadow: none; }
+    :root[data-theme="dark"] { color-scheme: dark; background: #15120e; color: #f1e9da; }
+    :root[data-theme="dark"] body { background: radial-gradient(rgba(241,233,218,.09) 1px, transparent 1.4px) 0 0 / 22px 22px, #15120e; }
+    :root[data-theme="dark"] .eyebrow, :root[data-theme="dark"] p { color: #b5ab98; }
+    :root[data-theme="dark"] .eyebrow::before, :root[data-theme="dark"] a { border-color: #f1e9da; }
+    :root[data-theme="dark"] a { box-shadow: 4px 4px 0 #f1e9da; }
   </style>
+  <script>
+    (() => {
+      let theme;
+      try { theme = localStorage.getItem('epstein-theme'); } catch {}
+      theme ||= matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
 </head>
 <body>
-  <p class="eyebrow">404 · Fuori pista</p>
+  <p class="eyebrow">404</p>
   <h1>Pagina non trovata<span class="accent">.</span></h1>
   <p>Questo gioco o questa pagina non è disponibile.</p>
   <a href="/">Torna al catalogo</a>
