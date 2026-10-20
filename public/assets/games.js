@@ -370,6 +370,27 @@ export const games = [
     credits: 'Racing JS di Antonio-R1, distribuito con licenza GNU AGPL-3.0-or-later. Licenze di Three.js, Ammo.js e Stats.js incluse nella build.',
     authorUrl: 'https://github.com/Antonio-R1/racing-js',
   },
+  {
+    slug: 'mindustry',
+    title: 'Mindustry',
+    category: 'Strategia',
+    version: '8 (build 159.7)',
+    description: 'Costruisci basi, automatizza le risorse e difendi il nucleo dalle ondate nemiche.',
+    entry: '/builds/mindustry/index.html',
+    cover: '/assets/icons/mindustry.svg',
+    coverAlt: 'Icona di Mindustry con nastri trasportatori e blocchi di risorse',
+    author: 'Anuken',
+    inputs: ['touch', 'mouse', 'keyboard'],
+    requirements: ['webgl'],
+    controls: [
+      'Clic o tap: seleziona e costruisci. Trascina per tracciare nastri e muri.',
+      'WASD: sposta la visuale. Rotellina o pizzica: zoom.',
+      'Esc: menu e pausa. Il multiplayer P2P richiede un server di segnalazione configurato.',
+    ],
+    notes: 'Port web (TeaVM) di Mindustry, ospitato localmente. Richiede WebGL; il primo avvio scarica circa 60 MB di risorse, poi vengono messe in cache nel browser. I salvataggi restano su questo dispositivo.',
+    credits: 'Mindustry di Anuken, distribuito con licenza GNU GPL-3.0. Build web non ufficiale.',
+    authorUrl: 'https://github.com/Anuken/Mindustry',
+  },
 ];
 
 export const siteRoot = new URL('../', import.meta.url);
