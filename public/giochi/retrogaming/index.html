@@ -8,6 +8,10 @@
   <title>Retrogaming Multiconsole — Epstein Island</title>
   <link rel="stylesheet" href="../../assets/site.css">
   <script src="../../assets/theme.js"></script>
+  <script type="module" src="../../assets/player.js"></script>
+  
+  <!-- Loader ufficiale di EmulatorJS caricato correttamente nel head -->
+  <script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
 
   <style>
     .save-panel {
@@ -143,8 +147,8 @@
     <section class="info-card" aria-labelledby="gameInfoHeading">
       <h2 id="gameInfoHeading">Gestione Dati e Compatibilità</h2>
       <ul id="gameControls">
-        <li><strong>Formati supportati:</strong> <code>.zip</code> (Arcade), <code>.snes</code>/<code>.smc</code> (SNES), <code>.nes</code> (NES), <code>.gba</code> (GBA), <code>.bin</code>/<code>.cue</code> (PS1), ecc.</li>
-        <li><strong>Salvataggio di Stato:</strong> I salvataggi rapidi e le configurazioni rimangono memorizzati nel browser.</li>
+        <li><strong>Formati supportati:</strong> Qualsiasi file ROM (<code>.zip</code>, <code>.gba</code>, <code>.snes</code>, <code>.nes</code>, ecc.).</li>
+        <li><strong>Salvataggio di Stato:</strong> I salvataggi rapidi e le impostazioni restano memorizzati nel browser.</li>
       </ul>
       
       <div class="save-panel">
@@ -165,7 +169,6 @@
     </nav>
   </main>
 
-  <!-- Script JavaScript separato collocato nella cartella assets -->
   <script src="../../assets/emulator.js"></script>
 </body>
 </html>

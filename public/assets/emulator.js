@@ -1,13 +1,5 @@
 const DB_NAME = 'EpsteinMultiGamesDB';
 const STORE_NAME = 'roms';
-const DATA_KEY = 'multiconsole_rom_data';
-const AUTOSTART_KEY = 'retrogaming-autostart';
-const EJS_PATH = 'https://cdn.emulatorjs.org/stable/data/';
-
-// Alcuni valori del menu non coincidono con i nomi dei core di EmulatorJS.
-const CORE_ALIASES = {
-  megadrive: 'segaMD',
-};
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -27,7 +19,8 @@ async function saveDataToDB(key, data) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put(data, key);
+    const store = tx.objectStore(STORE_NAME);
+    store.put(data, key);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
@@ -37,7 +30,8 @@ async function getDataFromDB(key) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
-    const req = tx.objectStore(STORE_NAME).get(key);
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.get(key);
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
@@ -47,7 +41,8 @@ async function deleteDataFromDB(key) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).delete(key);
+    const store = tx.objectStore(STORE_NAME);
+    store.delete(key);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
@@ -69,11 +64,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const gameStage = document.getElementById('gameStage');
 
   let currentRomFile = null;
-  let emulatorStarted = false;
 
-  // Recupera ROM e preferenze salvate
   try {
-    const savedData = await getDataFromDB(DATA_KEY);
+    const savedData = await getDataFromDB('multiconsole_rom_data');
     if (savedData) {
       if (savedData.file) {
         currentRomFile = savedData.file;
@@ -81,34 +74,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         playBtn.disabled = false;
         gameStatus.textContent = 'Dati caricati dalla memoria locale';
       }
-      if (savedData.core) consoleSelect.value = savedData.core;
-      if (savedData.touch !== undefined) touchControlsToggle.value = String(savedData.touch);
+      if (savedData.core) {
+        consoleSelect.value = savedData.core;
+      }
+      if (savedData.touch !== undefined) {
+        touchControlsToggle.value = savedData.touch.toString();
+      }
     }
   } catch (err) {
-    console.warn('Nessun dato salvato trovato.', err);
+    console.warn('Nessun dato salvato trovato.');
   }
 
   async function saveCurrentSettings() {
-    if (!currentRomFile) return;
-    try {
-      await saveDataToDB(DATA_KEY, {
+    if (currentRomFile) {
+      await saveDataToDB('multiconsole_rom_data', {
         file: currentRomFile,
         core: consoleSelect.value,
-        touch: touchControlsToggle.value === 'true',
+        touch: touchControlsToggle.value === 'true'
       });
-    } catch (err) {
-      console.error('Impossibile salvare i dati locali.', err);
-      gameStatus.textContent = 'ROM caricata, ma non salvabile nel browser';
     }
   }
 
   romFileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     currentRomFile = file;
     uploadLabel.textContent = `File selezionato: ${file.name}`;
     playBtn.disabled = false;
-    gameStatus.textContent = "Pronto all'avvio";
+    gameStatus.textContent = 'Pronto all\'avvio';
+
     await saveCurrentSettings();
   });
 
@@ -118,68 +113,46 @@ document.addEventListener('DOMContentLoaded', async () => {
   function launchEmulator() {
     if (!currentRomFile) return;
 
-    // EmulatorJS mantiene stato globale: per riavviare in modo affidabile
-    // si ricarica la pagina e si riparte in automatico.
-    if (emulatorStarted) {
-      try { sessionStorage.setItem(AUTOSTART_KEY, '1'); } catch {}
-      location.reload();
-      return;
-    }
-    emulatorStarted = true;
-
     placeholder.hidden = true;
     emulatorContainer.hidden = false;
     emulatorContainer.innerHTML = '<div id="game"></div>';
     reloadBtn.disabled = false;
 
     const romUrl = URL.createObjectURL(currentRomFile);
-    const selectedCore = CORE_ALIASES[consoleSelect.value] || consoleSelect.value;
+    const selectedCore = consoleSelect.value;
     const enableTouch = touchControlsToggle.value === 'true';
 
     window.EJS_player = '#game';
-    window.EJS_core = selectedCore;
+    window.EJS_core = selectedCore; 
     window.EJS_gameName = currentRomFile.name;
     window.EJS_color = '#0066cc';
     window.EJS_startOnLoaded = true;
-    window.EJS_pathtoEJS = EJS_PATH;
+    window.EJS_pathtoEJS = 'https://cdn.emulatorjs.org/stable/data/';
     window.EJS_gameUrl = romUrl;
-    window.EJS_threads = false;
-    window.EJS_onGameStart = () => { gameStatus.textContent = 'In esecuzione'; };
-    window.addEventListener('error', (e) => {
-      gameStatus.textContent = `Errore: ${e.message}`;
-    });
+    window.EJS_saveDataInLocalStorage = true; 
     window.EJS_touchControls = enableTouch;
-    window.EJS_VirtualGamepadSettings = undefined;
 
-    const script = document.createElement('script');
-    script.src = `${EJS_PATH}loader.js`;
-    script.onerror = () => {
-      emulatorStarted = false;
-      placeholder.hidden = false;
-      emulatorContainer.hidden = true;
-      gameStatus.textContent = 'Impossibile caricare EmulatorJS. Controlla la connessione.';
-    };
-    document.body.appendChild(script);
+    if (typeof window.EJS_loadGame === 'function') {
+      window.EJS_loadGame();
+    } else if (typeof window.EJS_restart === 'function') {
+      window.EJS_restart();
+    } else {
+      location.reload();
+    }
 
     gameStatus.textContent = `In esecuzione (${selectedCore.toUpperCase()})`;
   }
 
   playBtn.addEventListener('click', launchEmulator);
-  reloadBtn.addEventListener('click', launchEmulator);
 
-  // Riavvio automatico dopo "Ricarica gioco"
-  let shouldAutostart = false;
-  try {
-    shouldAutostart = sessionStorage.getItem(AUTOSTART_KEY) === '1';
-    sessionStorage.removeItem(AUTOSTART_KEY);
-  } catch {}
-  if (shouldAutostart && currentRomFile) launchEmulator();
+  reloadBtn.addEventListener('click', () => {
+    launchEmulator();
+  });
 
-  // Schermo intero
   if (fullscreenBtn) {
     fullscreenBtn.addEventListener('click', () => {
       if (!document.fullscreenElement) {
-        gameStage.requestFullscreen().catch((err) => {
+        gameStage.requestFullscreen().catch(err => {
           console.error(`Errore attivazione schermo intero: ${err.message}`);
         });
       } else {
@@ -189,23 +162,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.addEventListener('fullscreenchange', () => {
       const isFullscreen = !!document.fullscreenElement;
-      fullscreenBtn.setAttribute('aria-pressed', String(isFullscreen));
+      fullscreenBtn.setAttribute('aria-pressed', isFullscreen);
       if (fullscreenText) {
         fullscreenText.textContent = isFullscreen ? 'Esci schermo intero' : 'Schermo intero';
       }
     });
   }
 
-  // Rimozione dati salvati
   clearRomBtn.addEventListener('click', async () => {
-    try {
-      await deleteDataFromDB(DATA_KEY);
-      alert('Dati rimossi con successo.');
-    } catch (err) {
-      alert('Impossibile rimuovere i dati salvati.');
-      console.error(err);
-      return;
-    }
+    await deleteDataFromDB('multiconsole_rom_data');
+    alert('Dati rimossi con successo.');
     location.reload();
   });
 });
