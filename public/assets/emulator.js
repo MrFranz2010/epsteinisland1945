@@ -138,12 +138,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.EJS_player = '#game';
     window.EJS_core = selectedCore;
-    window.EJS_gameName = currentRomFile.name.replace(/\.[^.]+$/, '');
+    window.EJS_gameName = currentRomFile.name;
     window.EJS_color = '#0066cc';
     window.EJS_startOnLoaded = true;
     window.EJS_pathtoEJS = EJS_PATH;
     window.EJS_gameUrl = romUrl;
     window.EJS_threads = false;
+    window.EJS_onGameStart = () => { gameStatus.textContent = 'In esecuzione'; };
+    window.addEventListener('error', (e) => {
+      gameStatus.textContent = `Errore: ${e.message}`;
+    });
     window.EJS_touchControls = enableTouch;
     window.EJS_VirtualGamepadSettings = undefined;
 
