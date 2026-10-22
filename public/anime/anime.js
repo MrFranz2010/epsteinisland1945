@@ -186,25 +186,21 @@ document.addEventListener('DOMContentLoaded', () => {
     return card;
   }
 
+  // Funzione di ricerca globale tramite il backend su Render
   async function searchAnime(query) {
     const term = query.trim();
     if (!term) return;
     
     if (searchGrid) searchGrid.innerHTML = '<p>Ricerca globale in corso...</p>';
 
-    // Usa sempre il backend online su Render
     const BACKEND_URL = 'https://epsteinsbackend.onrender.com';
-
-    console.log("Invio richiesta a:", `${BACKEND_URL}/api/search?q=${encodeURIComponent(term)}`);
 
     try {
       const res = await fetch(`${BACKEND_URL}/api/search?q=${encodeURIComponent(term)}`);
-      
-      if (!res.ok) throw new Error(`Errore HTTP: ${res.status}`);
-      
-      const data = await res.json();
-      console.log("Dati ricevuti dal backend:", data);
+      if (!res.ok) throw new Error('Errore di comunicazione con il server');
 
+      const data = await res.json();
+      
       if (searchGrid) {
         searchGrid.innerHTML = '';
         if (data && data.data && data.data.length > 0) {
@@ -214,12 +210,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     } catch (err) {
-      console.error("Errore durante la fetch:", err);
       if (searchGrid) {
-        searchGrid.innerHTML = `<p style="color: red;">Errore di connessione al backend (${err.message}). Se usi Render, il server potrebbe essere in fase di attivazione, riprova tra qualche secondo.</p>`;
+        searchGrid.innerHTML = `<p style="color: red;">Errore di connessione al backend. Se il server su Render era in pausa, riprova tra qualche secondo.</p>`;
       }
     }
   }
+
+  if (searchBtn && searchInput) {
+    searchBtn.addEventListener('click', () => searchAnime(searchInput.value));
+    searchInput.addEventListener('keypress', (e) => { 
+      if (e.key === 'Enter') searchAnime(searchInput.value); 
+    });
+  }
+
   function loadWatchlist() {
     const favs = getFavorites();
     if (watchlistGrid) {
@@ -236,9 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   updateFavCounter();
   
-  // Mostra i titoli di default all'avvio nella sezione di ricerca
-  if (searchGrid) {
-    searchGrid.innerHTML = '';
-    animeDatabase.forEach(anime => searchGrid.appendChild(createAnimeCard(anime)));
-  }
+  // Caricamento iniziale di default (es. Naruto)
+  searchAnime('Naruto');
 });
