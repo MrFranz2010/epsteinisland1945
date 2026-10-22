@@ -23,6 +23,19 @@ function slugify(text, max) {
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, max);
 }
 
+function setAutoTrack(rawName, rawId) {
+  if (typeof rawName !== 'string' || !rawName.trim()) return false;
+  const name = rawName.trim().slice(0, 40);
+  const idPart = typeof rawId === 'string' ? slugify(rawId, 6) : '';
+  const base = slugify(name, idPart ? 22 : 29) || 'pista';
+  const key = `polytrack-${base}${idPart ? `-${idPart}` : ''}`;
+  const changed = !autoTrack || autoTrack.key !== key;
+  autoTrack = { name, key };
+  trackInput.value = name;
+  save();
+  return changed;
+}
+
 function trackKey() {
   if (autoTrack && trackInput.value.trim() === autoTrack.name) return autoTrack.key;
   const slug = slugify(trackInput.value, 29);
@@ -102,15 +115,7 @@ window.addEventListener('message', (event) => {
   const data = event.data;
   if (!data || data.type !== 'racing-zone:polytrack-finish' || !Number.isSafeInteger(data.timeMs)) return;
   lastTimeMs = data.timeMs;
-  // Il gioco comunica nome e ID (hash) della pista: l'ID evita di confondere piste con lo stesso nome.
-  if (typeof data.trackName === 'string' && data.trackName.trim()) {
-    const name = data.trackName.trim().slice(0, 40);
-    const idPart = typeof data.trackId === 'string' ? slugify(data.trackId, 6) : '';
-    const base = slugify(name, idPart ? 22 : 29) || 'pista';
-    autoTrack = { name, key: `polytrack-${base}${idPart ? `-${idPart}` : ''}` };
-    trackInput.value = name;
-    save();
-  }
+  setAutoTrack(data.trackName, data.trackId);
   if (trackKey()) send();
   else setStatus(`Gara terminata in ${formatTime(lastTimeMs)}. Scrivi il nome della pista e premi «Invia ultimo tempo».`);
 });
@@ -118,6 +123,12 @@ window.addEventListener('message', (event) => {
 try {
   trackInput.value = localStorage.getItem('epstein-island:pt-track') || '';
 } catch {}
+setInterval(() => {
+  try {
+    const current = gameFrame.contentWindow?.__polytrackTrack;
+    if (current && setAutoTrack(current.name, current.id)) refresh();
+  } catch {}
+}, 1500);
 submitBtn.addEventListener('click', send);
 refreshBtn.addEventListener('click', refresh);
 trackInput.addEventListener('change', () => { save(); refresh(); });
