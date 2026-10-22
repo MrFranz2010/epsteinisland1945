@@ -1,0 +1,22 @@
+.chat-shell { overflow: hidden; border: 2px solid var(--border); border-radius: var(--radius); background: var(--panel); box-shadow: 6px 6px 0 var(--shadow-color); }
+.chat-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 12px 14px; border-bottom: 2px solid var(--border); background: var(--panel-2); }
+.chat-bar .game-label { font-size: .8rem; }
+.chat-name-field { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .85rem; font-weight: 600; }
+.chat-name-field input { width: 180px; min-height: 40px; margin: 0; }
+.chat-list { display: flex; flex-direction: column; gap: 10px; height: min(62vh, 560px); padding: 16px; overflow-y: auto; overscroll-behavior: contain; background: radial-gradient(var(--dot) 1px, transparent 1.4px) 0 0 / 22px 22px, var(--bg); }
+.chat-empty { margin: auto; color: var(--muted); text-align: center; line-height: 1.55; }
+.chat-message { align-self: flex-start; max-width: min(100%, 560px); padding: 9px 12px; border: 2px solid var(--border); border-radius: var(--radius); background: var(--panel); box-shadow: 3px 3px 0 var(--shadow-color); }
+.chat-message.mine { align-self: flex-end; background: var(--sun); color: var(--ink); }
+.chat-message-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 3px; font-family: var(--font-mono); font-size: .72rem; }
+.chat-message-head strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .8rem; }
+.chat-message-head time { margin-left: auto; opacity: .6; font-variant-numeric: tabular-nums; }
+.chat-message p { margin: 0; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap; }
+.chat-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 12px 14px; border-top: 2px solid var(--border); background: var(--panel-2); }
+.chat-form input { min-width: 0; margin: 0; }
+.chat-status { min-height: 1.4em; margin: 12px 2px 0; color: var(--muted); font-family: var(--font-mono); font-size: .78rem; line-height: 1.5; }
+.chat-status[data-error="true"] { color: var(--error); }
+@media (max-width: 700px) {
+  .chat-name-field { width: 100%; }
+  .chat-name-field input { flex: 1; width: auto; }
+  .chat-shell { box-shadow: 4px 4px 0 var(--shadow-color); }
+}
