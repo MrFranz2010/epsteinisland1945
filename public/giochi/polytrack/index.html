@@ -91,11 +91,32 @@
         <button id="leaveLobbyBtn" type="button">Esci dalla lobby</button>
       </div>
     </section>
+    <section class="multiplayer-panel" aria-labelledby="lbTitle">
+      <div class="section-heading">
+        <div><p class="eyebrow">Classifica</p><h2 id="lbTitle">Tempi per pista</h2></div>
+      </div>
+      <div class="profile-controls">
+        <label for="lbTrack">Pista (nome o codice)
+          <input id="lbTrack" maxlength="40" autocomplete="off" placeholder="es. Summer 1">
+        </label>
+        <label for="lbName">Il tuo nome
+          <input id="lbName" maxlength="20" autocomplete="nickname">
+        </label>
+      </div>
+      <div class="toolbar-actions" style="margin-top:14px">
+        <button class="primary" id="lbSubmit" type="button">Invia ultimo tempo</button>
+        <button id="lbRefresh" type="button">Aggiorna</button>
+      </div>
+      <p class="lobby-status" id="lbStatus" role="status" aria-live="polite"></p>
+      <ol id="lbList" class="lobby-leaderboard"></ol>
+      <p class="muted">Tutti devono scrivere la pista nello stesso modo. Maiuscole, accenti e spazi non contano.</p>
+    </section>
     <noscript><p>Attiva JavaScript per avviare il gioco all’interno della pagina.</p></noscript>
     <p class="credits" id="gameCredits"></p>
     <nav class="related-games" aria-label="Altri giochi"><h2>Continua a giocare</h2><div id="relatedGames"></div><a class="button-link" href="../../">← Torna al catalogo</a></nav>
   </main>
   <script src="../../deployment-config.js"></script>
   <script type="module" src="../../assets/polytrack-multiplayer.js"></script>
+  <script type="module" src="../../assets/polytrack-leaderboard.js"></script>
 </body>
 </html>
