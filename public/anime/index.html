@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f1ebdf">
+  <meta name="description" content="Anime Hub & Player - Epstein Island">
+  <title>Anime Hub — Epstein Island</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <script src="../assets/theme.js"></script>
+  <script src="./anime.js" defer></script>
+  <style>
+    .anime-tabs {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+      padding-bottom: 10px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 8px 16px;
+      border-radius: 6px;
+      color: inherit;
+      opacity: 0.6;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      opacity: 1;
+      background: rgba(0, 102, 204, 0.1);
+      color: #0066cc;
+    }
+    .search-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 25px;
+    }
+    .search-box input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid currentColor;
+      background: var(--bg-color, #fff);
+      color: inherit;
+      font-size: 1rem;
+    }
+    .anime-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    .anime-card {
+      background: rgba(0, 0, 0, 0.03);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(0,0,0,0.08);
+      transition: transform 0.2s ease;
+    }
+    .anime-card:hover {
+      transform: translateY(-4px);
+    }
+    .anime-poster {
+      width: 100%;
+      height: 250px;
+      object-fit: cover;
+      background: #ccc;
+    }
+    .anime-info {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      justify-content: space-between;
+    }
+    .anime-title {
+      font-size: 0.95rem;
+      font-weight: bold;
+      margin: 0 0 8px 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-top: 10px;
+    }
+    .watch-btn {
+      background: #0066cc;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .fav-btn {
+      padding: 6px;
+      font-size: 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid currentColor;
+      background: transparent;
+      color: inherit;
+    }
+    .fav-btn.active-fav {
+      background: #0066cc;
+      color: #fff;
+      border-color: #0066cc;
+    }
+    .user-profile-bar {
+      background: rgba(0, 102, 204, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+    #playerSection {
+      background: rgba(0, 0, 0, 0.02);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+    .player-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 15px;
+    }
+    .episode-list {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+    }
+    .episode-btn {
+      padding: 8px 14px;
+      background: rgba(0, 102, 204, 0.1);
+      border: 1px solid #0066cc;
+      color: inherit;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-weight: bold;
+    }
+    .episode-btn.active {
+      background: #0066cc;
+      color: #fff;
+    }
+  </style>
+</head>
+<body data-page="anime">
+  <header class="site-header">
+    <a class="brand" href="../" aria-label="Epstein island, home"><span class="brand-mark" aria-hidden="true">S</span> Epstein island</a>
+    <a class="header-link music-nav-link" href="../chat/">💬 Chat</a>
+    <a class="header-link music-nav-link" href="../musica/">♫ Musica</a>
+    <a class="header-link music-nav-link" href="./">📺 Anime</a>
+  </header>
+
+  <main style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+    <section class="intro">
+      <p class="eyebrow" style="text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px; opacity: 0.7; margin-bottom: 5px;">Streaming & Tracker</p>
+      <h1 style="font-size: 2.2rem; margin-bottom: 10px;">ANIME HUB<span class="accent" style="color: #0066cc;">.</span></h1>
+      <p style="opacity: 0.8; margin-bottom: 25px;">Cerca tra i titoli, gestisci la tua watchlist locale per utente e guarda gli episodi nel player integrato.</p>
+    </section>
+
+    <!-- Barra profilo utente -->
+    <div class="user-profile-bar">
+      <div>
+        <strong>Utente attivo:</strong> <span id="currentUsername">Ospite</span>
+        <button id="changeUserBtn" type="button" style="margin-left: 10px; padding: 4px 8px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; border: 1px solid currentColor; background: transparent; color: inherit;">Cambia nome</button>
+      </div>
+      <div>
+        <span id="favCount">0</span> Anime nei Preferiti
+      </div>
+    </div>
+
+    <!-- Player Video Integrato -->
+    <section id="playerSection" hidden>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h2 id="playerTitle" style="margin: 0; font-size: 1.3rem;">Titolo Anime</h2>
+        <button id="closePlayerBtn" type="button" style="padding: 6px 12px; cursor: pointer; border-radius: 4px; border: 1px solid currentColor; background: transparent; color: inherit;">Chiudi Player ✕</button>
+      </div>
+      <div class="player-container">
+        <video id="animeVideoPlayer" controls style="width: 100%; height: 100%; background: #000; outline: none;"></video>
+      </div>
+      <h3 style="font-size: 1.1rem; margin-bottom: 10px;">Seleziona Episodio (fino a 50):</h3>
+      <div id="episodeList" class="episode-list"></div>
+    </section>
+
+    <!-- Tab di Navigazione (Senza Tendenze) -->
+    <div class="anime-tabs">
+      <button class="tab-btn active" data-tab="search">🔍 Cerca Anime</button>
+      <button class="tab-btn" data-tab="watchlist">⭐ I Miei Preferiti</button>
+    </div>
+
+    <!-- Sezione Ricerca (Tab Principale) -->
+    <div id="tab-search" class="tab-content">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Cerca un anime (es. Naruto, One Piece, Fullmetal Alchemist)..." autocomplete="off">
+        <button cslass="primary" id="searchBtn" type="button" style="padding: 12px 20px; border-radius: 8px; border: none; background: #0066cc; color: #fff; font-weight: bold; cursor: pointer;">Cerca</button>
+      </div>
+      <div id="searchGrid" class="anime-grid"><p style="opacity: 0.7;">Digita un titolo e premi Cerca.</p></div>
+    </div>
+
+    <!-- Sezione Preferiti / Watchlist -->
+    <div id="tab-watchlist" class="tab-content" hidden>
+      <h2 style="font-size: 1.4rem; margin-bottom: 15px;">La tua Watchlist Personale</h2>
+      <div id="watchlistGrid" class="anime-grid"><p>Non hai ancora aggiunto preferiti.</p></div>
+    </div>
+  </main>
+
+  <footer style="text-align: center; padding: 40px 0; opacity: 0.6; font-size: 0.9rem; border-top: 1px solid rgba(0,0,0,0.08); margin-top: 40px;">
+    <p>Catalogo statico con ricerca locale ottimizzata e gestione preferiti.</p>
+  </footer>
+</body>
+</html>
