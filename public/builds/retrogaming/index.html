@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Retro Arcade Emulator</title>
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #121212;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .config-panel {
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      max-width: 400px;
+      width: 90%;
+    }
+    .config-group {
+      margin-bottom: 15px;
+      text-align: left;
+    }
+    .config-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+    .config-group select, input[type="file"] {
+      width: 100%;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #2a2a2a;
+      color: #fff;
+      box-sizing: border-box;
+    }
+    .btn {
+      background: #0066cc;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+      margin-top: 10px;
+    }
+    .btn:hover { background: #0052a3; }
+    .btn:disabled { background: #555; cursor: not-allowed; }
+    #game-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: #000;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="configPanel" class="config-panel">
+    <h2>Configura Emulatore</h2>
+    
+    <div class="config-group">
+      <label for="consoleSelect">Console / Sistema:</label>
+      <select id="consoleSelect">
+        <option value="mame2003plus">Arcade (MAME 2003 Plus) - Consigliato per Street Fighter 1</option>
+        <option value="fbneo">Arcade (FinalBurn Neo)</option>
+        <option value="nes">Nintendo Entertainment System (NES)</option>
+        <option value="snes">Super Nintendo (SNES)</option>
+        <option value="gba">Game Boy Advance (GBA)</option>
+        <option value="gb">Game Boy / Color (GB/GBC)</option>
+        <option value="megadrive">Sega Mega Drive / Genesis</option>
+        <option value="psx">PlayStation 1 (PSX)</option>
+        <option value="n64">Nintendo 64 (N64)</option>
+        <option value="nds">Nintendo DS (NDS)</option>
+      </select>
+    </div>
+
+    <div class="config-group">
+      <label for="touchToggle">Controlli Touch su Schermo:</label>
+      <select id="touchToggle">
+        <option value="true">Attivati</option>
+        <option value="false">Disattivati</option>
+      </select>
+    </div>
+
+    <div class="config-group">
+      <label for="romFile">File ROM (.zip, .gba, .snes, ecc.):</label>
+      <input type="file" id="romFile" accept="*/*">
+      <small id="romName" style="color: #aaa; display: block; margin-top: 5px;"></small>
+    </div>
+
+    <button id="startBtn" class="btn" disabled>Avvia Gioco</button>
+  </div>
+
+  <div id="game-container" hidden>
+    <div id="game" style="width:100%; height:100%;"></div>
+  </div>
+
+  <script>
+    const DB_NAME = 'EpsteinMultiGamesDB';
+    const STORE_NAME = 'roms';
+
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = e => e.target.result.createObjectStore(STORE_NAME);
+        req.onsuccess = e => resolve(e.target.result);
+        req.onerror = e => reject(e.target.error);
+      });
+    }
+
+    async function saveData(data) {
+      const db = await openDB();
+      return new Promise((res, rej) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put(data, 'session');
+        tx.oncomplete = () => res();
+        tx.onerror = e => rej(e.target.error);
+      });
+    }
+
+    async function getData() {
+      const db = await openDB();
+      return new Promise((res, rej) => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const req = tx.objectStore(STORE_NAME).get('session');
+        req.onsuccess = e => res(e.target.result);
+        req.onerror = e => rej(e.target.error);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const romInput = document.getElementById('romFile');
+      const romName = document.getElementById('romName');
+      const startBtn = document.getElementById('startBtn');
+      const consoleSelect = document.getElementById('consoleSelect');
+      const touchToggle = document.getElementById('touchToggle');
+      const configPanel = document.getElementById('configPanel');
+      const gameContainer = document.getElementById('game-container');
+
+      let romFile = null;
+
+      try {
+        const saved = await getData();
+        if (saved) {
+          if (saved.file) {
+            romFile = saved.file;
+            romName.textContent = `ROM in memoria: ${saved.file.name}`;
+            startBtn.disabled = false;
+          }
+          if (saved.core) {
+            consoleSelect.value = saved.core;
+          }
+          if (saved.touch !== undefined) {
+            touchToggle.value = saved.touch;
+          }
+        }
+      } catch (err) {
+        console.warn('Nessun dato salvato trovato.');
+      }
+
+      async function updateStorage() {
+        if (!romFile) return;
+        await saveData({
+          file: romFile,
+          core: consoleSelect.value,
+          touch: touchToggle.value
+        });
+      }
+
+      romInput.addEventListener('change', async e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        romFile = file;
+        romName.textContent = `File selezionato: ${file.name}`;
+        startBtn.disabled = false;
+        await updateStorage();
+      });
+
+      consoleSelect.addEventListener('change', updateStorage);
+      touchToggle.addEventListener('change', updateStorage);
+
+      startBtn.addEventListener('click', async () => {
+        if (!romFile) return;
+        await updateStorage();
+
+        configPanel.hidden = true;
+        gameContainer.hidden = false;
+
+        const romUrl = URL.createObjectURL(romFile);
+        const touchEnabled = touchToggle.value === 'true';
+
+        // Impostazione corretta e forzata delle variabili globali
+        window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
+        window.EJS_player = '#game';
+        window.EJS_core = consoleSelect.value;
+        window.EJS_gameName = romFile.name;
+        window.EJS_color = '#0066cc';
+        window.EJS_startOnLoaded = true;
+        window.EJS_gameUrl = romUrl;
+        window.EJS_saveDataInLocalStorage = true;
+        window.EJS_touchControls = touchEnabled; // <-- Assegnazione diretta del booleano
+
+        var EJS_pathtodata = window.EJS_pathtodata;
+        var EJS_player = window.EJS_player;
+        var EJS_core = window.EJS_core;
+        var EJS_gameName = window.EJS_gameName;
+        var EJS_color = window.EJS_color;
+        var EJS_startOnLoaded = window.EJS_startOnLoaded;
+        var EJS_gameUrl = window.EJS_gameUrl;
+        var EJS_saveDataInLocalStorage = window.EJS_saveDataInLocalStorage;
+        var EJS_touchControls = window.EJS_touchControls;
+
+        const script = document.createElement('script');
+        script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+        document.body.appendChild(script);
+      });
+    });
+  </script>
+</body>
+</html>

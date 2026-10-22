@@ -127,15 +127,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.EJS_gameName = currentRomFile.name;
     window.EJS_color = '#0066cc';
     window.EJS_startOnLoaded = true;
-    window.EJS_pathtoEJS = 'https://cdn.emulatorjs.org/stable/data/';
     window.EJS_gameUrl = romUrl;
     window.EJS_saveDataInLocalStorage = true; 
     window.EJS_touchControls = enableTouch;
 
     if (typeof window.EJS_loadGame === 'function') {
       window.EJS_loadGame();
-    } else if (typeof window.EJS_restart === 'function') {
-      window.EJS_restart();
     } else {
       location.reload();
     }
