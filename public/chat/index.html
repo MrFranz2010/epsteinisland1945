@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f1ebdf">
+  <meta name="description" content="Chatta in tempo reale con gli altri giocatori.">
+  <title>Chat | Epstein island</title>
+  <link rel="stylesheet" href="../assets/site.css">
+  <link rel="stylesheet" href="../assets/chat.css">
+  <script src="../assets/theme.js"></script>
+  <script type="module" src="../assets/chat.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../" aria-label="Epstein island, catalogo"><span class="brand-mark" aria-hidden="true">S</span> Epstein island</a>
+    <a class="header-link" href="../">← Tutti i giochi</a>
+  </header>
+  <main>
+    <section class="intro">
+      <p class="eyebrow">Community</p>
+      <h1>CHAT<span class="accent">.</span></h1>
+      <p>Scrivi agli altri giocatori in tempo reale. Sii gentile: i messaggi sono visibili a tutti e vengono moderati.</p>
+    </section>
+    <section class="chat-shell" aria-label="Chat">
+      <div class="chat-bar">
+        <div class="game-label"><span class="status-dot" aria-hidden="true"></span><span id="chatLive" role="status">Connessione…</span></div>
+        <label class="chat-name-field" for="chatName">Il tuo nome
+          <input id="chatName" maxlength="20" autocomplete="nickname" placeholder="Nome">
+        </label>
+      </div>
+      <div class="chat-list" id="chatList" role="log" aria-live="polite" aria-label="Messaggi"></div>
+      <form class="chat-form" id="chatForm" autocomplete="off">
+        <label class="visually-hidden" for="chatInput">Messaggio</label>
+        <input id="chatInput" maxlength="500" placeholder="Scrivi un messaggio…" required>
+        <button class="primary" id="chatSend" type="submit">Invia</button>
+      </form>
+    </section>
+    <p class="chat-status" id="chatStatus" role="status" aria-live="polite"></p>
+    <noscript><p>Attiva JavaScript per usare la chat.</p></noscript>
+  </main>
+</body>
+</html>
