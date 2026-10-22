@@ -391,6 +391,19 @@ export const games = [
     credits: 'Mindustry di Anuken, distribuito con licenza GNU GPL-3.0. Build web non ufficiale.',
     authorUrl: 'https://github.com/Anuken/Mindustry',
   },
+  {
+    slug: 'retrogaming',
+    title: 'Retro Arcade Multiconsole',
+    category: 'Emulator',
+    version: '1.0',
+    description: 'Emulatore multisistema per giocare ai classici (Arcade, SNES, NES, GBA, PSX e altro) caricando le ROM direttamente dal browser.',
+    entry: '/giochi/retrogaming/index.html',
+    inputs: ['keyboard', 'controller', 'mouse'],
+    requirements: ['webgl', 'internet'],
+    controls: ['Variabili in base al sistema scelto.', 'Trascina o seleziona il file ROM locale.'],
+    notes: 'Le ROM e i salvataggi di stato vengono memorizzati localmente tramite IndexedDB.',
+    credits: 'EmulatorJS & Core multi-piattaforma.',
+  },
 ];
 
 export const siteRoot = new URL('../', import.meta.url);
