@@ -29078,7 +29078,7 @@
                 }
                 if (null != Gw(this, Yv, "f").finishFrames && null == n.finishFrames) {
                     this.notificationAudioEnabled && Gw(this, Dv, "m", Pw).call(this);
-                    window.parent !== window && window.parent.postMessage({ type: "racing-zone:polytrack-finish", timeMs: this.getFinishTime().numberOfFrames }, window.location.origin);
+                    window.parent !== window && window.parent.postMessage({ type: "racing-zone:polytrack-finish", timeMs: this.getFinishTime().numberOfFrames, trackName: (window.__polytrackTrack || {}).name, trackId: (window.__polytrackTrack || {}).id }, window.location.origin);
                     for (const e of Gw(this, rw, "f"))
                         e(this)
                 }
@@ -50730,6 +50730,7 @@ var KT, qT, YT, XT, ZT, JT, $T, eC, tC, nC, iC, rC, aC, sC, oC, lC, cC, hC, dC, 
                     ))
                 }
                   , C = (e, t, n, i, l=null) => {
+                    try { window.__polytrackTrack = { id: String(t.getId()), name: String(e.name) } } catch (err) { console.error(err) }
                     r.trigger(( () => {
                         QP(),
                         L.dispose();
