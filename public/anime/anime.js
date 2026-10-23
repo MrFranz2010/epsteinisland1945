@@ -1,19 +1,30 @@
 document.addEventListener('DOMContentLoaded', () => {
   /* ============================================================
      CONFIGURAZIONE COMET (scraping fonti)
-     - COMET_BASE: la tua istanza Comet (self-hosted o pubblica).
-     - COMET_CONFIG: b64config copiato dall'URL del manifest di /configure.
-     - COMET_PROXY: se la CORS blocca, endpoint tuo che inoltra:
-         fetch(decodeURIComponent(req.query.url))
-       e qui metti 'https://esempio/api/comet?url='
+
+     COMET_BASE  -> istanza Comet. NOTA: comet.elfhosted.com è dietro
+                    Cloudflare e risponde 403 senza header CORS, quindi
+                    la fetch dal browser fallisce. comet.feels.legal
+                    (istanza pubblica ufficiale) funziona.
+
+     COMET_CONFIG-> b64config copiato dall'URL del manifest su /configure.
+                    SENZA debrid configurato Comet restituisce solo infoHash,
+                    che un <video> non sa riprodurre: serve un debrid
+                    (TorBox, Real-Debrid, AllDebrid...) per avere il campo url.
+
+     COMET_PROXY -> endpoint tuo che inoltra: fetch(decodeURIComponent(req.query.url))
+                    e aggiunge gli header CORS. Esempio:
+                    'https://mio-worker.workers.dev/?url='
+                    Usato come fallback se la fetch diretta viene bloccata.
      ============================================================ */
-  const COMET_BASE = 'https://comet.elfhosted.com';
+  const COMET_BASE = 'https://comet.feels.legal';
   const COMET_CONFIG = '';
   const COMET_PROXY = '';
 
   const KITSU_API = 'https://kitsu.io/api/edge';
   const KITSU_CACHE_PREFIX = 'epstein_kitsu_';
-  const FALLBACK_SRC = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  const STREAM_TIMEOUT_MS = 20000;
+  const EPISODES_PER_PAGE = 50;
 
   const tabs = document.querySelectorAll('.tab-btn');
   const contents = document.querySelectorAll('.tab-content');
@@ -88,13 +99,72 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ============================================================
+     HLS opzionale: caricato solo se una fonte è .m3u8 e il browser
+     non la supporta nativamente (Chrome/Firefox).
+     ============================================================ */
+  let hlsLibPromise = null;
+  let hlsInstance = null;
+
+  function loadHlsLibrary() {
+    if (window.Hls) return Promise.resolve(window.Hls);
+    if (!hlsLibPromise) {
+      hlsLibPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js';
+        script.onload = () => (window.Hls ? resolve(window.Hls) : reject(new Error('hls.js non disponibile')));
+        script.onerror = () => reject(new Error('hls.js non caricato'));
+        document.head.append(script);
+      });
+    }
+    return hlsLibPromise;
+  }
+
+  function destroyHls() {
+    if (hlsInstance) {
+      try { hlsInstance.destroy(); } catch { /* già distrutto */ }
+      hlsInstance = null;
+    }
+  }
+
+  function resetVideoPlayer() {
+    if (!authorizedVideoPlayer) return;
+    destroyHls();
+    authorizedVideoPlayer.pause();
+    authorizedVideoPlayer.removeAttribute('src');
+    authorizedVideoPlayer.load();
+  }
+
+  /* ============================================================
      COMET: id Kitsu e scraping degli stream
      ============================================================ */
 
-  function cometUrl(path) {
-    const base = `${COMET_BASE.replace(/\/$/, '')}${COMET_CONFIG ? '/' + COMET_CONFIG : ''}`;
-    const full = `${base}${path}`;
-    return COMET_PROXY ? `${COMET_PROXY}${encodeURIComponent(full)}` : full;
+  function cometFullUrl(path) {
+    const base = COMET_BASE.replace(/\/$/, '');
+    const config = COMET_CONFIG ? `/${COMET_CONFIG.replace(/^\/|\/$/g, '')}` : '';
+    return `${base}${config}${path}`;
+  }
+
+  /* Fetch con timeout e fallback automatico sul proxy CORS */
+  async function cometFetch(path) {
+    const full = cometFullUrl(path);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
+
+    try {
+      const res = await fetch(full, { signal: controller.signal });
+      if (!res.ok) throw new Error(`Comet ha risposto ${res.status}`);
+      return await res.json();
+    } catch (error) {
+      if (error.name === 'AbortError') throw error;
+      if (!COMET_PROXY) throw error;
+
+      setSourceStatus('Fetch diretta bloccata, provo dal proxy…');
+      const proxied = await fetch(`${COMET_PROXY}${encodeURIComponent(full)}`);
+      if (!proxied.ok) throw new Error(`proxy ha risposto ${proxied.status}`);
+      return await proxied.json();
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   function readKitsuCache(malId) {
@@ -159,9 +229,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return kitsuIdFromTitle(anime.title);
   }
 
+  /* Comet mette qualità, seeders e tracker nella description:
+     va letta anche quella, non solo name/title/filename. */
   function streamText(stream) {
     const hint = stream.behaviorHints && stream.behaviorHints.filename ? stream.behaviorHints.filename : '';
-    return `${stream.name || ''} ${stream.title || ''} ${hint}`.toLowerCase();
+    return `${stream.name || ''} ${stream.title || ''} ${stream.description || ''} ${hint}`.toLowerCase();
   }
 
   /* Prima i link riproducibili diretti, poi qualità e seeders */
@@ -178,18 +250,23 @@ document.addEventListener('DOMContentLoaded', () => {
     return score;
   }
 
+  function streamLabel(stream) {
+    const text = `${stream.name || 'Fonte'} ${stream.description || ''}`;
+    const quality = text.match(/(2160p|4k|1440p|1080p|720p|480p|360p)/i);
+    const name = (stream.name || 'Fonte').replace(/\[.*?\]\s*/g, '').trim() || 'Fonte';
+    return quality ? `${name} ${quality[1].toLowerCase()}` : name;
+  }
+
   async function fetchStreams(anime, episode) {
     const kitsuId = await kitsuIdFor(anime);
     if (!kitsuId) throw new Error('nessun id Kitsu trovato per questo titolo');
 
-    const res = await fetch(cometUrl(`/stream/series/kitsu:${kitsuId}:${episode}.json`));
-    if (!res.ok) throw new Error(`Comet ha risposto ${res.status}`);
-
-    const data = await res.json();
+    const data = await cometFetch(`/stream/series/kitsu:${kitsuId}:${episode}.json`);
     const all = (data.streams || []).filter(s => s && (s.url || s.infoHash));
     const playable = all.filter(s => typeof s.url === 'string' && s.url);
     playable.sort((a, b) => streamScore(b) - streamScore(a));
-    return { playable, total: all.length };
+
+    return { playable, torrents: all.length - playable.length, total: all.length };
   }
 
   function renderSources() {
@@ -198,8 +275,8 @@ document.addEventListener('DOMContentLoaded', () => {
     currentSources.forEach((stream, index) => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.textContent = `${stream.name || 'Fonte'} ${index + 1}`;
-      button.title = `${stream.title || stream.name || ''}`.trim();
+      button.textContent = `${streamLabel(stream)} ${index + 1}`;
+      button.title = `${stream.name || ''} — ${stream.description || ''}`.trim();
       button.setAttribute('aria-pressed', String(index === currentSourceIndex));
       button.style.cssText = 'padding: 6px 10px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; ' +
                              'border: 1px solid currentColor; background: transparent; color: inherit; ' +
@@ -214,37 +291,62 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function playSource(index) {
+  async function playSource(index) {
     const stream = currentSources[index];
     if (!stream || !authorizedVideoPlayer) return;
+
     currentSourceIndex = index;
     renderSources();
+    resetVideoPlayer();
 
     const href = String(stream.url);
-    if (/\.m3u8($|\?)/i.test(href) && authorizedVideoPlayer.canPlayType('application/vnd.apple.mpegurl') === '') {
-      setAnimePlayerStatus('Fonte HLS: questo browser non la riproduce senza un player HLS.', true);
+    const label = streamLabel(stream);
+
+    /* HLS: prova il supporto nativo, altrimenti hls.js */
+    if (/\.m3u8($|\?)/i.test(href) &&
+        authorizedVideoPlayer.canPlayType('application/vnd.apple.mpegurl') === '') {
+      try {
+        const Hls = await loadHlsLibrary();
+        if (Hls && Hls.isSupported()) {
+          hlsInstance = new Hls();
+          hlsInstance.on(Hls.Events.ERROR, (_event, data) => {
+            if (data && data.fatal) advanceToNextSource();
+          });
+          hlsInstance.loadSource(href);
+          hlsInstance.attachMedia(authorizedVideoPlayer);
+          setAnimePlayerStatus(`Episodio ${currentEpisode} (${label}, HLS).`);
+          authorizedVideoPlayer.play().catch(() => {});
+          return;
+        }
+      } catch {
+        setAnimePlayerStatus('hls.js non caricato: la fonte HLS potrebbe non partire.', true);
+      }
     }
 
     authorizedVideoPlayer.src = href;
     authorizedVideoPlayer.play()
-      .then(() => setAnimePlayerStatus(`Riproduzione episodio ${currentEpisode} (${stream.name || 'fonte'}).`))
-      .catch(() => setAnimePlayerStatus(`Episodio ${currentEpisode}: premi play per avviare (${stream.name || 'fonte'}).`));
+      .then(() => setAnimePlayerStatus(`Riproduzione episodio ${currentEpisode} (${label}).`))
+      .catch(() => setAnimePlayerStatus(`Episodio ${currentEpisode}: premi play per avviare (${label}).`));
+  }
+
+  function advanceToNextSource() {
+    if (!currentAnime || currentSourceIndex < 0 || !currentSources.length) return;
+    if (currentSourceIndex + 1 < currentSources.length) {
+      setAnimePlayerStatus('Fonte non riproducibile, passo alla successiva…');
+      playSource(currentSourceIndex + 1);
+    } else {
+      setAnimePlayerStatus(`Nessuna fonte riproducibile per l'episodio ${currentEpisode}.`, true);
+    }
   }
 
   /* Se una fonte muore a metà, passo alla successiva */
   if (authorizedVideoPlayer) {
-    authorizedVideoPlayer.addEventListener('error', () => {
-      if (!currentAnime || currentSourceIndex < 0 || !currentSources.length) return;
-      if (currentSourceIndex + 1 < currentSources.length) {
-        setAnimePlayerStatus('Fonte non riproducibile, passo alla successiva…');
-        playSource(currentSourceIndex + 1);
-      } else {
-        setAnimePlayerStatus(`Nessuna fonte riproducibile per l'episodio ${currentEpisode}.`, true);
-      }
-    });
+    authorizedVideoPlayer.addEventListener('error', advanceToNextSource);
   }
 
   async function playAuthorizedEpisode(anime, episode) {
+    if (!authorizedVideoPlayer) return;
+
     const requestId = ++authorizedStreamRequest;
     currentAnime = anime;
     currentEpisode = episode;
@@ -254,19 +356,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sourcePanel) sourcePanel.hidden = false;
     if (sourceList) sourceList.replaceChildren();
 
-    authorizedVideoPlayer.pause();
-    authorizedVideoPlayer.removeAttribute('src');
+    resetVideoPlayer();
 
     setAnimePlayerStatus(`Cerco le fonti su Comet per l'episodio ${episode}…`);
     setSourceStatus('Fonti da Comet');
 
     try {
-      const { playable, total } = await fetchStreams(anime, episode);
+      const { playable, torrents, total } = await fetchStreams(anime, episode);
       if (requestId !== authorizedStreamRequest) return;
 
       if (!playable.length) {
-        setSourceStatus(`Nessuna fonte riproducibile (${total} torrent senza link diretto).`, true);
-        setAnimePlayerStatus('Comet ha trovato solo torrent con infoHash: attiva PROXY_DEBRID_STREAM o un debrid.', true);
+        if (!total) {
+          setSourceStatus('Comet non ha trovato nulla per questo episodio.', true);
+          setAnimePlayerStatus('Nessun risultato: prova un altro episodio o un altro titolo.', true);
+        } else {
+          setSourceStatus(`Nessun link diretto: ${torrents} torrent senza url.`, true);
+          setAnimePlayerStatus(
+            'Comet ha trovato solo torrent (infoHash): configura un debrid e metti il b64config in COMET_CONFIG.',
+            true
+          );
+        }
         return;
       }
 
@@ -275,38 +384,78 @@ document.addEventListener('DOMContentLoaded', () => {
       playSource(0);
     } catch (error) {
       if (requestId !== authorizedStreamRequest) return;
-      const detail = error.message || 'errore sconosciuto';
-      setSourceStatus(`Scraping non riuscito: ${detail}`, true);
-      setAnimePlayerStatus('Controlla che Comet sia raggiungibile (CORS) o configura COMET_PROXY.', true);
+
+      if (error.name === 'AbortError') {
+        setSourceStatus(`Comet non ha risposto in ${STREAM_TIMEOUT_MS / 1000}s.`, true);
+        setAnimePlayerStatus('Timeout: riprova o configura COMET_PROXY.', true);
+      } else if (/failed to fetch|networkerror|load failed/i.test(error.message)) {
+        setSourceStatus('Richiesta bloccata da CORS/rete.', true);
+        setAnimePlayerStatus('Cambia COMET_BASE o configura COMET_PROXY.', true);
+      } else {
+        setSourceStatus(`Scraping non riuscito: ${error.message}`, true);
+        setAnimePlayerStatus('Controlla che Comet sia raggiungibile.', true);
+      }
     }
   }
 
-  function openAuthorizedPlayer(anime) {
-    animePlayerPanel.hidden = false;
-    animePlayerTitle.textContent = anime.title || 'Anime';
+  /* ---------------- Lista episodi con paginazione ---------------- */
+  const episodeState = { anime: null, shown: 0, total: null };
+
+  function renderEpisodeButtons() {
+    const { anime, total } = episodeState;
+    if (!anime || !animeEpisodeList) return;
+
     animeEpisodeList.replaceChildren();
-    authorizedVideoPlayer.pause();
-    authorizedVideoPlayer.removeAttribute('src');
-    if (sourcePanel) sourcePanel.hidden = true;
-    if (sourceList) sourceList.replaceChildren();
 
-    const episodeCount = Number(anime.episodes);
-    const totalEpisodes = Number.isInteger(episodeCount) && episodeCount > 0
-      ? Math.min(episodeCount, 50)
-      : 12;
-
-    for (let episode = 1; episode <= totalEpisodes; episode++) {
+    for (let episode = 1; episode <= episodeState.shown; episode++) {
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = `Ep ${episode}`;
-      button.setAttribute('aria-pressed', String(episode === 1));
+      button.setAttribute('aria-pressed', String(episode === currentEpisode));
       button.addEventListener('click', () => {
+        currentEpisode = episode;
         animeEpisodeList.querySelectorAll('button').forEach((item) => item.setAttribute('aria-pressed', 'false'));
         button.setAttribute('aria-pressed', 'true');
         playAuthorizedEpisode(anime, episode);
       });
       animeEpisodeList.append(button);
     }
+
+    const remaining = total === null ? EPISODES_PER_PAGE : total - episodeState.shown;
+    if (remaining > 0) {
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'episode-more-btn';
+      more.textContent = `+ altri ${Math.min(EPISODES_PER_PAGE, remaining)}`;
+      more.title = 'Mostra altri episodi';
+      more.addEventListener('click', () => {
+        episodeState.shown += EPISODES_PER_PAGE;
+        renderEpisodeButtons();
+      });
+      animeEpisodeList.append(more);
+    }
+  }
+
+  function openAuthorizedPlayer(anime) {
+    if (!animePlayerPanel || !animeEpisodeList || !authorizedVideoPlayer) return;
+
+    animePlayerPanel.hidden = false;
+    animePlayerTitle.textContent = anime.title || 'Anime';
+
+    resetVideoPlayer();
+    if (sourcePanel) sourcePanel.hidden = true;
+    if (sourceList) sourceList.replaceChildren();
+
+    const episodeCount = Number(anime.episodes);
+    const hasCount = Number.isInteger(episodeCount) && episodeCount > 0;
+
+    currentAnime = anime;
+    currentEpisode = 1;
+    episodeState.anime = anime;
+    episodeState.total = hasCount ? episodeCount : null;
+    episodeState.shown = hasCount ? Math.min(episodeCount, EPISODES_PER_PAGE) : 12;
+    renderEpisodeButtons();
+
     setAnimePlayerStatus('Seleziona un episodio per avviare lo scraping delle fonti.');
     animePlayerPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -314,8 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (closeAnimePlayer) {
     closeAnimePlayer.addEventListener('click', () => {
       authorizedStreamRequest++;
-      authorizedVideoPlayer.pause();
-      authorizedVideoPlayer.removeAttribute('src');
+      resetVideoPlayer();
       animePlayerPanel.hidden = true;
     });
   }
@@ -489,7 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 15000);
 
     try {
-      const url = `https://kitsu.io/api/edge/anime?filter[text]=${encodeURIComponent(term)}&page[limit]=20`;
+      const url = `${KITSU_API}/anime?filter[text]=${encodeURIComponent(term)}&page[limit]=20`;
       const res = await fetch(url, {
         signal: controller.signal,
         headers: { Accept: 'application/vnd.api+json' },
