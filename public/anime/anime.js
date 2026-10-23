@@ -367,49 +367,74 @@ document.addEventListener('DOMContentLoaded', () => {
     const favs = getFavorites();
     const isFav = favs.some(f => String(f.mal_id) === String(anime.mal_id));
 
-    const card = document.createElement('div');
+    const card = document.createElement('article');
     card.className = 'anime-card';
     card.dataset.id = anime.mal_id;
-    card.innerHTML = `
-      <img class="anime-poster" src="${anime.images?.jpg?.image_url || ''}" alt="${anime.title}">
-      <div class="anime-info">
-        <div>
-          <h3 class="anime-title" title="${anime.title}">${anime.title}</h3>
-          <p style="font-size: 0.8rem; opacity: 0.7; margin: 0;">⭐ ${anime.score || 'N/D'} | 📺 ${anime.episodes || '?'} ep</p>
-        </div>
-        <div class="card-actions">
-          <button class="watch-btn" type="button">▶ Guarda</button>
-          <button class="fav-btn ${isFav ? 'active-fav' : ''}" type="button">
-            ${isFav ? '⭐ Salvato' : '☆ Preferito'}
-          </button>
-        </div>
-      </div>
-    `;
+    const image = document.createElement('img');
+    image.className = 'anime-poster';
+    image.src = anime.images?.jpg?.image_url || '';
+    image.alt = anime.title || 'Copertina anime';
+    image.loading = 'lazy';
+    image.decoding = 'async';
 
-    card.querySelector('.watch-btn').addEventListener('click', () => openPlayer(anime));
+    const info = document.createElement('div');
+    info.className = 'anime-info';
+    const title = document.createElement('h3');
+    title.className = 'anime-title';
+    title.textContent = anime.title || 'Titolo non disponibile';
+    const metadata = document.createElement('p');
+    metadata.style.cssText = 'font-size: 0.8rem; opacity: 0.7; margin: 0;';
+    metadata.textContent = `⭐ ${anime.score ?? 'N/D'} | 📺 ${anime.episodes ?? '?'} ep`;
 
-    const favBtn = card.querySelector('.fav-btn');
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+    const detailsLink = document.createElement('a');
+    detailsLink.className = 'watch-btn';
+    detailsLink.href = anime.url || `https://myanimelist.net/anime.php?q=${encodeURIComponent(anime.title || '')}`;
+    detailsLink.target = '_blank';
+    detailsLink.rel = 'noopener noreferrer';
+    detailsLink.textContent = 'Apri scheda';
+
+    const availabilityLink = document.createElement('a');
+    availabilityLink.className = 'fav-btn';
+    availabilityLink.href = `https://www.justwatch.com/it/ricerca?q=${encodeURIComponent(anime.title || '')}`;
+    availabilityLink.target = '_blank';
+    availabilityLink.rel = 'noopener noreferrer';
+    availabilityLink.textContent = 'Dove guardarlo';
+
+    const favBtn = document.createElement('button');
+    favBtn.className = `fav-btn${isFav ? ' active-fav' : ''}`;
+    favBtn.type = 'button';
+    favBtn.textContent = isFav ? '⭐ Salvato' : '☆ Preferito';
+    actions.append(detailsLink, availabilityLink, favBtn);
+    info.append(title, metadata, actions);
+    card.append(image, info);
+
     favBtn.addEventListener('click', () => {
       let currentFavs = getFavorites();
       const index = currentFavs.findIndex(f => String(f.mal_id) === String(anime.mal_id));
 
       if (index > -1) {
         currentFavs.splice(index, 1);
-        favBtn.classList.remove('active-fav');
-        favBtn.textContent = '☆ Preferito';
       } else {
         currentFavs.push({
           mal_id: anime.mal_id,
           title: anime.title,
           images: anime.images,
           score: anime.score,
-          episodes: anime.episodes
+          episodes: anime.episodes,
+          url: anime.url
         });
-        favBtn.classList.add('active-fav');
-        favBtn.textContent = '⭐ Salvato';
       }
 
-      localStorage.setItem(getFavoritesKey(), JSON.stringify(currentFavs));
+      try {
+        localStorage.setItem(getFavoritesKey(), JSON.stringify(currentFavs));
+      } catch {
+        return;
+      }
+      const isNowFavorite = index === -1;
+      favBtn.classList.toggle('active-fav', isNowFavorite);
+      favBtn.textContent = isNowFavorite ? '⭐ Salvato' : '☆ Preferito';
       updateFavCounter();
       const watchlistTab = document.getElementById('tab-watchlist');
       if (watchlistTab && !watchlistTab.hidden) loadWatchlist();
@@ -418,39 +443,62 @@ document.addEventListener('DOMContentLoaded', () => {
     return card;
   }
 
-  /* ---------------- Ricerca (invariata) ---------------- */
+  /* ---------------- Ricerca Jikan ---------------- */
+  let activeSearchController;
+
   async function searchAnime(query) {
     const term = query.trim();
-    if (!term) return;
+    if (!searchGrid) return;
+    if (!term) {
+      searchGrid.textContent = 'Scrivi un titolo per avviare la ricerca.';
+      return;
+    }
 
-    if (searchGrid) searchGrid.innerHTML = '<p>Ricerca globale in corso...</p>';
-
-    const BACKEND_URL = 'https://epsteinsbackend.onrender.com';
+    activeSearchController?.abort();
+    const controller = new AbortController();
+    activeSearchController = controller;
+    const loading = document.createElement('p');
+    loading.textContent = 'Ricerca in corso…';
+    searchGrid.replaceChildren(loading);
+    searchBtn.disabled = true;
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 15000);
 
     try {
-      const res = await fetch(`${BACKEND_URL}/api/search?q=${encodeURIComponent(term)}`);
-      if (!res.ok) throw new Error('Errore di comunicazione con il server');
-
+      const url = `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(term)}&limit=24&sfw=true`;
+      const res = await fetch(url, { signal: controller.signal });
+      if (!res.ok) throw new Error(`Jikan ha risposto ${res.status}`);
       const data = await res.json();
-
-      if (searchGrid) {
-        searchGrid.innerHTML = '';
-        if (data && data.data && data.data.length > 0) {
-          data.data.forEach(anime => searchGrid.appendChild(createAnimeCard(anime)));
-        } else {
-          searchGrid.innerHTML = `<p>Nessun anime trovato per "${query}".</p>`;
-        }
+      if (controller.signal.aborted) return;
+      searchGrid.replaceChildren();
+      if (Array.isArray(data.data) && data.data.length > 0) {
+        data.data.forEach(anime => searchGrid.appendChild(createAnimeCard(anime)));
+      } else {
+        searchGrid.textContent = `Nessun anime trovato per "${term}".`;
       }
     } catch (err) {
-      if (searchGrid) {
-        searchGrid.innerHTML = `<p style="color: red;">Errore di connessione al backend. Se il server su Render era in pausa, riprova tra qualche secondo.</p>`;
+      if (err.name === 'AbortError') {
+        if (timedOut && activeSearchController === controller) {
+          searchGrid.textContent = 'La ricerca sta impiegando troppo tempo. Riprova tra poco.';
+        }
+      } else {
+        searchGrid.textContent = 'Catalogo non raggiungibile. Controlla la connessione e riprova.';
+      }
+    } finally {
+      clearTimeout(timeoutId);
+      if (activeSearchController === controller) {
+        activeSearchController = null;
+        searchBtn.disabled = false;
       }
     }
   }
 
   if (searchBtn && searchInput) {
     searchBtn.addEventListener('click', () => searchAnime(searchInput.value));
-    searchInput.addEventListener('keypress', (e) => {
+    searchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') searchAnime(searchInput.value);
     });
   }
