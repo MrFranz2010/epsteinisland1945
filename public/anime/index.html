@@ -8,7 +8,7 @@
   <title>Anime | Epstein Island</title>
   <link rel="stylesheet" href="../assets/site.css">
   <script src="../assets/theme.js"></script>
-  <script src="./anime.js?v=20261023-6" defer></script>
+  <script src="./anime.js?v=20261023-7" defer></script>
   <style>
     .anime-tabs {
       display: flex;
@@ -115,6 +115,7 @@
       line-height: 1.5;
       margin: -18px 0 28px;
     }
+    .anime-player-panel .anime-source-note { margin-top: 0; }
     .fav-btn {
       padding: 6px;
       font-size: 0.8rem;
@@ -179,8 +180,15 @@
       display: flex;
       gap: 8px;
       overflow-x: auto;
-      padding: 4px 4px 10px;
+      padding: 4px 4px 0;
+      margin-bottom: 12px;
       scroll-behavior: smooth;
+      scrollbar-width: thin;
+    }
+    .anime-episode-list::-webkit-scrollbar { height: 8px; }
+    .anime-episode-list::-webkit-scrollbar-thumb {
+      background: rgba(128, 128, 128, 0.4);
+      border-radius: 4px;
     }
     .anime-episode-list button { flex: 0 0 auto; }
     .anime-episode-list button[aria-pressed="true"] {
@@ -203,7 +211,18 @@
       background: var(--panel, #fff);
       color: #0066cc;
       cursor: pointer;
-      box-shadow: -10px 0 12px -8px rgba(0, 0, 0, 0.35);
+    }
+    /* Velo sfumato a sinistra: copre in modo pulito gli episodi
+       che scorrono sotto il bottone flottante. */
+    .episode-more-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: -18px;
+      width: 18px;
+      pointer-events: none;
+      background: linear-gradient(to right, transparent, var(--panel, #fff));
     }
     .episode-more-btn:hover {
       background: rgba(0, 102, 204, 0.12);
