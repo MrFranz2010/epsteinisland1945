@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#f1ebdf">
-  <meta name="description" content="Gioca a PolyTrack 0.4.1 direttamente su Epstein island.">
-  <title>PolyTrack </title>
+  <meta name="description" content="Gioca a PolyTrack 0.5.2 direttamente su Epstein Island.">
+  <title>PolyTrack | Epstein Island</title>
   <link rel="stylesheet" href="../../assets/site.css">
   <script src="../../assets/theme.js"></script>
   <script type="module" src="../../assets/player.js"></script>
@@ -17,7 +17,7 @@
   </header>
   <main>
     <section class="intro">
-      <p class="eyebrow" id="gameCategory">Racing · Versione 0.4.1</p>
+      <p class="eyebrow" id="gameCategory">Racing · Versione 0.5.2</p>
       <h1 id="gameTitle">POLYTRACK<span class="accent">.</span></h1>
     </section>
     <section class="game-shell" id="gameShell" aria-label="Area di gioco">
@@ -41,13 +41,12 @@
       </div>
       <p class="player-note" id="loadNotice" role="status" hidden></p>
     </section>
-    <section class="multiplayer-panel" aria-labelledby="multiplayerTitle">
+    <section class="profile-panel" aria-labelledby="profileTitle">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">SFIDA TRA AMICI</p>
-          <h2 id="multiplayerTitle">Crea una lobby e confronta i tempi</h2>
+          <p class="eyebrow">GIOCATORE LOCALE</p>
+          <h2 id="profileTitle">Profili PolyTrack</h2>
         </div>
-        <span class="muted">Le lobby scadono dopo 7 giorni</span>
       </div>
       <div class="local-profile">
         <h3>Profili salvati su questo browser</h3>
@@ -57,41 +56,17 @@
           </label>
           <form id="createProfileForm" class="profile-create-form">
             <label for="newProfileName">Aggiungi un giocatore</label>
-            <div class="lobby-join-controls">
+            <div class="profile-create-controls">
               <input id="newProfileName" maxlength="20" autocomplete="off" placeholder="Nome del giocatore" required>
               <button class="primary" type="submit">Crea profilo</button>
             </div>
           </form>
         </div>
-        <p class="muted">Ogni profilo conserva separatamente record, livree e lobby su questo browser. I dati non vengono sincronizzati tra dispositivi.</p>
+        <p class="muted">Ogni profilo conserva separatamente record e livree su questo browser; i dati non vengono sincronizzati tra dispositivi.</p>
       </div>
-      <div class="lobby-forms" id="lobbyForms">
-        <form id="createLobbyForm" class="lobby-form">
-          <label for="playerName">Il tuo nome</label>
-          <input id="playerName" name="name" maxlength="20" autocomplete="nickname" required>
-          <button class="primary" type="submit">Crea lobby</button>
-        </form>
-        <form id="joinLobbyForm" class="lobby-form">
-          <label for="lobbyCode">Hai un codice?</label>
-          <div class="lobby-join-controls">
-            <input id="lobbyCode" name="code" maxlength="6" autocomplete="off" placeholder="CODICE" required>
-            <button type="submit">Unisciti</button>
-          </div>
-        </form>
-      </div>
-      <p class="lobby-status" id="lobbyStatus" role="status" aria-live="polite">Crea una lobby o inserisci il codice ricevuto da un amico.</p>
-      <div id="lobbyRoom" class="lobby-room" hidden>
-        <div class="lobby-invite">
-          <p>Codice lobby <strong id="lobbyCodeDisplay"></strong></p>
-          <button id="copyInviteBtn" type="button">Copia invito</button>
-        </div>
-        <h3>Classifica · stessa pista</h3>
-        <ol id="lobbyLeaderboard" class="lobby-leaderboard"></ol>
-        <p class="muted">I tempi vengono registrati automaticamente quando termini una gara. Per un confronto corretto, scegliete la stessa pista nel gioco.</p>
-        <button id="leaveLobbyBtn" type="button">Esci dalla lobby</button>
-      </div>
+      <p class="profile-status" id="profileStatus" role="status" aria-live="polite"></p>
     </section>
-    <section class="multiplayer-panel" aria-labelledby="lbTitle">
+    <section class="score-panel" aria-labelledby="lbTitle">
       <div class="section-heading">
         <div><p class="eyebrow">Classifica</p><h2 id="lbTitle">Tempi per pista</h2></div>
       </div>
@@ -105,16 +80,15 @@
         <button class="primary" id="lbSubmit" type="button">Invia ultimo tempo</button>
         <button id="lbRefresh" type="button">Aggiorna</button>
       </div>
-      <p class="lobby-status" id="lbStatus" role="status" aria-live="polite"></p>
-      <ol id="lbList" class="lobby-leaderboard"></ol>
+      <p class="score-status" id="lbStatus" role="status" aria-live="polite"></p>
+      <ol id="lbList" class="score-list"></ol>
       <p class="muted">Tutti devono scrivere la pista nello stesso modo. Maiuscole, accenti e spazi non contano.</p>
     </section>
     <noscript><p>Attiva JavaScript per avviare il gioco all’interno della pagina.</p></noscript>
     <p class="credits" id="gameCredits"></p>
     <nav class="related-games" aria-label="Altri giochi"><h2>Continua a giocare</h2><div id="relatedGames"></div><a class="button-link" href="../../">← Torna al catalogo</a></nav>
   </main>
-  <script src="../../deployment-config.js"></script>
-  <script type="module" src="../../assets/polytrack-multiplayer.js"></script>
+  <script type="module" src="../../assets/polytrack-profiles.js"></script>
   <script type="module" src="../../assets/polytrack-leaderboard.js"></script>
 </body>
 </html>
