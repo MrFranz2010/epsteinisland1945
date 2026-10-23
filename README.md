@@ -1,6 +1,5 @@
-# Epstein Island Game Catalog
-[![Netlify Status](https://api.netlify.com/api/v1/badges/ffcd07d1-888b-40a4-a8e8-cf572b77745a/deploy-status)](https://app.netlify.com/projects/epsteinisland1945/deploys)
-Catalogo statico multigioco pubblicabile su Netlify o GitHub Pages, senza framework o passaggi di build. La home presenta il catalogo; ogni gioco ha una pagina dedicata e viene eseguito in un iframe locale, senza redirect verso altri siti.
+# Epstein Island
+Catalogo statico di giochi web, anime e musica, pubblicato su GitHub Pages senza framework o passaggi di build. La home presenta il catalogo; ogni gioco ha una pagina dedicata e viene eseguito in un iframe locale, senza redirect verso altri siti.
 
 ## Struttura
 
@@ -9,7 +8,7 @@ Catalogo statico multigioco pubblicabile su Netlify o GitHub Pages, senza framew
 - `public/assets/player.js`: player condiviso, caricamento, riprova e crediti.
 - `public/assets/fullscreen.js`: schermo intero con fallback per browser non compatibili.
 - `public/giochi/polytrack/index.html`: pagina di PolyTrack e modello per nuove pagine.
-- `public/builds/polytrack-0.5.2/`: build di PolyTrack usata dalla pagina; include un evento minimo per inviare alla lobby il tempo di arrivo.
+- `public/builds/polytrack-0.5.2/`: build di PolyTrack usata dalla pagina; include un evento minimo per registrare il tempo di arrivo nella classifica per pista.
 - `public/builds/hexgl/`: build HexGL con licenza MIT; conserva licenze e attribuzioni della build, inclusi i crediti audio.
 - `public/builds/magic-maze-web/`: port HTML5 di Magic Maze Web con licenza MIT; conserva la licenza del port e quella del font Fraktur Modern. Gli archivi DOS originali non sono inclusi.
 - `public/builds/classic-games.css`: stile condiviso dei classici originali Snake, Pong, Breakout, 2048 e Campo minato, ospitati localmente.
@@ -18,10 +17,9 @@ Catalogo statico multigioco pubblicabile su Netlify o GitHub Pages, senza framew
 - `public/builds/plants-vs-zombies/`: pagina wrapper per incorporare il port PvZ Portable ospitato da Retro Games Center; il catalogo non include file del gioco.
 - `public/builds/candy-crush-clone/`: wrapper per la demo web di Candy Crush Clone ospitata dall’autore su GitHub Pages.
 - `public/builds/tiger-ball/`: wrapper per l’iframe Tiger Ball Online fornito da 4j.com.
-- `netlify.toml`: pubblicazione della sola cartella `public` su Netlify.
 - `.github/workflows/pages.yml`: pubblicazione automatica della cartella statica su GitHub Pages quando si aggiorna `main`.
 
-Il catalogo si modifica nei file del progetto: non ci sono pannelli admin o registrazioni. Le sole funzioni serverless aggiunte gestiscono lobby e tempi di PolyTrack tramite Netlify Blobs; il resto del catalogo rimane statico. Alcuni giochi possono essere presentati tramite embed esterni autorizzati, attribuiti ai rispettivi autori. GitHub Pages ospita il sito statico, ma non esegue funzioni serverless: le lobby PolyTrack sono disabilitate lì, mentre profili e salvataggi locali continuano a funzionare.
+Il catalogo si modifica nei file del progetto: non ci sono pannelli admin o registrazioni. Il sito è statico; preferiti, cronologia e profili sono conservati nel browser. Alcuni giochi e servizi informativi usano risorse esterne e richiedono una connessione.
 
 ## Funzioni del catalogo
 
@@ -66,11 +64,11 @@ Per un gioco distribuito tramite un embed esterno autorizzato, aggiungi comunque
 
 Il workflow in `.github/workflows/pages.yml` pubblica automaticamente il contenuto di `public/` quando viene aggiornato il branch `main` o quando il workflow viene avviato manualmente. Nelle impostazioni del repository, imposta **Settings → Pages → Build and deployment → Source** su **GitHub Actions**. Il workflow gestisce sia i siti utente (`<utente>.github.io`) sia i siti di progetto (`<utente>.github.io/<repository>/`); `.nojekyll` disattiva l'elaborazione Jekyll e preserva i file statici così come sono.
 
-Non serve compilare o installare dipendenze per GitHub Pages. La configurazione del deploy imposta `polytrackLobbies: false`, perché GitHub Pages non supporta le Netlify Functions. Per mantenere le lobby multiplayer, usa il deploy Netlify configurato in `netlify.toml`.
+Non serve compilare o installare dipendenze.
 
 ## Verificare il sito
 
-Per testare il sito statico, servi `public/` con un server HTTP e verifica catalogo, ricerca, pagine gioco, avvio delle build e schermo intero. Per verificare le lobby, installa le dipendenze con `npm install`, avvia Netlify Dev dalla root con `netlify dev --port 8889` e apri `http://localhost:8889/`. Non è necessario eseguire comandi di build.
+Per testare il sito in locale, servi `public/` con un server HTTP statico (per esempio `python3 -m http.server 8889 --directory public`) e verifica catalogo, ricerca, pagine gioco, avvio delle build e schermo intero. Non è necessario installare dipendenze o eseguire comandi di build.
 
 La build di PolyTrack è una versione non ufficiale: le classifiche e i ghost originali non sono disponibili. Il supporto mobile e ai controller dipende dalla build. Conserva i crediti e i collegamenti degli autori e pubblica soltanto giochi per cui hai i necessari diritti.
 
@@ -86,10 +84,10 @@ APEX FORMULA, Voxel Musou, K8s Games, VIM Master e Racing JS sono giochi di altr
 
 HexGL di Thibaut Despoulain e Magic Maze Web di Daniel Dahl sono port HTML5 open source ospitati localmente; mantieni le licenze e le attribuzioni incluse nelle rispettive cartelle. Magic Maze Web usa il font Fraktur Modern, distribuito con la propria licenza.
 
-## Lobby multiplayer di PolyTrack
+## PolyTrack
 
-La pagina di PolyTrack usa una Netlify Function e Netlify Blobs per creare lobby condivise tramite codice. Le lobby accettano fino a 8 piloti, conservano il miglior tempo per 7 giorni e vengono eliminate logicamente quando l'ultimo pilota esce. Il browser registra automaticamente il tempo di arrivo della build 0.5.2; per confrontare i risultati, tutti i partecipanti devono correre sulla stessa pista. I tempi si basano sul gioco eseguito nel browser e non sono verificati contro trucchi o modifiche locali.
+La pagina di PolyTrack permette di creare profili locali; record e livree vengono conservati separatamente nel `localStorage` del browser. I profili non sono account e non si sincronizzano tra dispositivi. La classifica per pista usa Supabase e richiede una connessione; i tempi sono inviati dal gioco eseguito nel browser e non sono verificati contro trucchi o modifiche locali.
 
-La stessa pagina permette di creare e cambiare profili locali. Record, livree e lobby vengono conservati separatamente nel `localStorage` del browser; il profilo iniziale importa i salvataggi PolyTrack già presenti. I profili non sono account e non si sincronizzano tra browser o dispositivi.
+## Anime
 
-Netlify installa `@netlify/blobs` dal `package.json` durante la pubblicazione. Per provare in locale, installa le dipendenze con `npm install` e avvia `netlify dev --port 8889`; Blobs e le funzioni richiedono Netlify Dev o un deploy Netlify e non funzionano servendo `public/` direttamente.
+La pagina anime cerca informazioni nel catalogo pubblico Jikan/MyAnimeList e salva i preferiti nel browser. Il link JustWatch aiuta a trovare i servizi legali disponibili in Italia; per riprodurre episodi completi nel sito serve una sorgente autorizzata che consenta l’embed.

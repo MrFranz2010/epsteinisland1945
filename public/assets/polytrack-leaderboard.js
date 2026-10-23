@@ -81,7 +81,7 @@ async function refresh() {
       const name = document.createElement('span');
       name.textContent = row.player;
       const time = document.createElement('span');
-      time.className = 'lobby-time';
+      time.className = 'score-time';
       time.textContent = formatTime(row.score);
       li.append(name, time);
       listEl.append(li);

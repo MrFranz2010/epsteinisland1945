@@ -1,11 +1,8 @@
 {
-  "name": "racing-zone",
+  "name": "epstein-island",
   "private": true,
   "type": "module",
   "engines": {
     "node": ">=18"
-  },
-  "dependencies": {
-    "@netlify/blobs": "11.1.4"
   }
 }

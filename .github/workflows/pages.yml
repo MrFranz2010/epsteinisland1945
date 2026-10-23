@@ -27,7 +27,6 @@ jobs:
         run: |
           mkdir _site
           cp -a public/. _site/
-          printf '%s\n' 'window.siteConfig = { polytrackLobbies: false };' > _site/deployment-config.js
           repository_name="${GITHUB_REPOSITORY#*/}"
           if [ "$repository_name" = "${GITHUB_REPOSITORY%%/*}.github.io" ]; then
             site_base="/"
