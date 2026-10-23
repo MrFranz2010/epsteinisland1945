@@ -500,7 +500,8 @@ document.addEventListener('DOMContentLoaded', () => {
           searchGrid.textContent = 'La ricerca sta impiegando troppo tempo. Riprova tra poco.';
         }
       } else {
-        searchGrid.textContent = 'Catalogo non raggiungibile. Controlla la connessione e riprova.';
+        const detail = err.message || 'errore di rete o CORS';
+        searchGrid.textContent = `Ricerca non riuscita (${detail}). Riprova tra poco.`;
       }
     } finally {
       clearTimeout(timeoutId);
