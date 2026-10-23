@@ -468,7 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 15000);
 
     try {
-      const url = `https://kitsu.io/api/edge/anime?filter[text]=${encodeURIComponent(term)}&page[limit]=24`;
+      const url = `https://kitsu.io/api/edge/anime?filter[text]=${encodeURIComponent(term)}&page[limit]=20`;
       const res = await fetch(url, {
         signal: controller.signal,
         headers: { Accept: 'application/vnd.api+json' },
