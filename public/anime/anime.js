@@ -2,7 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ============================================================
      CONFIGURAZIONE CONSUMET
      ============================================================ */
-  const CONSUMET_BASE = 'https://api.consumet.org'; // Puoi sostituirlo con la tua istanza self-hosted
+  // Se api.consumet.org è in rate-limit, puoi sostituire l'URL qui sotto con un'altra istanza o mirror
+  const CONSUMET_BASE = 'https://api.consumet.org';
   const CONSUMET_PROVIDER = 'gogoanime'; // Provider predefinito (es. gogoanime, zoro, enime)
 
   const STREAM_TIMEOUT_MS = 20000;
@@ -28,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const closeAnimePlayer = document.getElementById('closeAnimePlayer');
   let authorizedStreamRequest = 0;
 
-  /* ---------- Pannello fonti, stessa struttura del player ---------- */
+  /* ---------- Pannello fonti ---------- */
   const sourcePanel = document.createElement('div');
   sourcePanel.id = 'animeSourcePanel';
   sourcePanel.hidden = true;
@@ -81,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ============================================================
-     HLS opzionale: caricato solo se una fonte è .m3u8
+     HLS Support (hls.js)
      ============================================================ */
   let hlsLibPromise = null;
   let hlsInstance = null;
@@ -116,11 +117,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ============================================================
-     CONSUMET: Ricerca e recupero streaming
+     CONSUMET API FETCH & STREAMING
      ============================================================ */
 
-  async function consumetFetch(endpoint) {
-    const url = `${CONSUMET_BASE}/anime/${CONSUMET_PROVIDER}${endpoint}`;
+  async function consumetFetch(path) {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    const url = `${CONSUMET_BASE}/anime/${CONSUMET_PROVIDER}${cleanPath}`;
+    
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
 
@@ -137,30 +140,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function fetchStreams(anime, episodeNumber) {
-    // Usiamo l'ID memorizzato o cerchiamo l'anime per ID/Titolo su Consumet
     let animeId = anime.consumet_id;
     
+    // Se non abbiamo ancora l'ID di Consumet, effettuiamo una ricerca
     if (!animeId) {
       const searchRes = await consumetFetch(`/${encodeURIComponent(anime.title)}`);
       const results = searchRes.results || [];
       if (results.length === 0) throw new Error('Anime non trovato su Consumet');
       animeId = results[0].id;
-      anime.consumet_id = animeId; // Salviamo in cache per le prossime chiamate
+      anime.consumet_id = animeId;
     }
 
-    // 1. Otteniamo i dettagli dell'anime inclusi gli episodi
+    // 1. Otteniamo le informazioni sugli episodi
     const info = await consumetFetch(`/info/${animeId}`);
     const episodes = info.episodes || [];
     
-    // Troviamo l'episodio corrispondente
     const targetEp = episodes.find(ep => ep.number === episodeNumber) || episodes[episodeNumber - 1];
-    if (!targetEp) throw new Error(`Episodio ${episodeNumber} non disponibile`);
+    if (!targetEp) throw new Error(`Episodio ${episodeNumber} non trovato`);
 
-    // 2. Otteniamo i link di streaming per l'episodio specifico
+    // 2. Recuperiamo le sorgenti per l'episodio
     const watchData = await consumetFetch(`/watch/${targetEp.id}`);
     const sources = watchData.sources || [];
 
-    // Ordiniamo le fonti (es. preferenza per 1080p, 720p o backup)
     sources.sort((a, b) => {
       if (a.quality === '1080p') return -1;
       if (b.quality === '1080p') return 1;
@@ -168,7 +169,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     return {
-      playable: sources.map(s => ({ url: s.url, name: s.quality || 'HD', description: `Server ${s.isM3U8 ? 'HLS' : 'MP4'}` })),
+      playable: sources.map(s => ({ 
+        url: s.url, 
+        name: s.quality || 'HD', 
+        description: `Server ${s.isM3U8 ? 'HLS' : 'MP4'}` 
+      })),
       total: episodes.length
     };
   }
@@ -269,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!playable.length) {
         setSourceStatus('Consumet non ha trovato link video.', true);
-        setAnimePlayerStatus('Nessun risultato disponibile.', true);
+        setAnimePlayerStatus('Nessun risultato disponibile per questo episodio.', true);
         return;
       }
 
@@ -279,11 +284,11 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
       if (requestId !== authorizedStreamRequest) return;
       setSourceStatus(`Errore: ${error.message}`, true);
-      setAnimePlayerStatus('Impossibile caricare lo streaming.', true);
+      setAnimePlayerStatus('Impossibile caricare lo streaming per questo episodio.', true);
     }
   }
 
-  /* ---------------- Lista episodi con paginazione ---------------- */
+  /* ---------------- Pagina ed Episodi ---------------- */
   const episodeState = { anime: null, shown: 0, total: null };
 
   function renderEpisodeButtons() {
@@ -351,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /* ---------------- Gestione Utente e Preferiti ---------------- */
+  /* ---------------- Profilo & Preferiti ---------------- */
   let currentUser = localStorage.getItem('epstein_anime_user') || 'Utente';
   if (currentUsernameSpan) currentUsernameSpan.textContent = currentUser;
 
@@ -474,31 +479,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const loading = document.createElement('p');
     loading.textContent = 'Ricerca in corso…';
     searchGrid.replaceChildren(loading);
-    searchBtn.disabled = true;
+    if (searchBtn) searchBtn.disabled = true;
 
     try {
       const data = await consumetFetch(`/${encodeURIComponent(term)}`);
       searchGrid.replaceChildren();
+      
       const results = data.results || [];
 
       if (results.length > 0) {
         results.forEach(item => {
+          let titleText = 'Titolo non disponibile';
+          if (typeof item.title === 'string') {
+            titleText = item.title;
+          } else if (item.title && typeof item.title === 'object') {
+            titleText = item.title.userPreferred || item.title.english || item.title.romaji || 'Titolo non disponibile';
+          }
+
           const anime = {
             mal_id: item.id,
             consumet_id: item.id,
-            title: item.title,
-            images: { jpg: { image_url: item.image } },
+            title: titleText,
+            images: { 
+              jpg: { 
+                image_url: item.image || item.cover || '' 
+              } 
+            },
             episodes: item.totalEpisodes || '?'
           };
+          
           searchGrid.appendChild(createAnimeCard(anime));
         });
       } else {
         searchGrid.textContent = `Nessun anime trovato per "${term}".`;
       }
     } catch (err) {
-      searchGrid.textContent = `Ricerca non riuscita: ${err.message}`;
+      console.error('Errore ricerca:', err);
+      searchGrid.textContent = `Ricerca non riuscita (${err.message}). Se l'API pubblica è in rate-limit, prova a cambiare CONSUMET_BASE.`;
     } finally {
-      searchBtn.disabled = false;
+      if (searchBtn) searchBtn.disabled = false;
     }
   }
 
