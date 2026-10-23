@@ -90,4 +90,4 @@ La pagina di PolyTrack permette di creare profili locali; record e livree vengon
 
 ## Anime
 
-La pagina anime cerca informazioni nel catalogo pubblico Jikan/MyAnimeList e salva i preferiti nel browser. Il link JustWatch aiuta a trovare i servizi legali disponibili in Italia; per riprodurre episodi completi nel sito serve una sorgente autorizzata che consenta l’embed.
+La pagina anime cerca informazioni nel catalogo pubblico Kitsu e salva i preferiti nel browser. Il player può ricevere uno stream tramite `window.resolveAuthorizedAnimeStream({ animeId, title, episode })`; configurare questa funzione con un provider che autorizzi la riproduzione. Il codice Comet non è collegato ai risultati di ricerca.

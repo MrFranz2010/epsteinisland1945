@@ -8,7 +8,7 @@
   <title>Anime | Epstein Island</title>
   <link rel="stylesheet" href="../assets/site.css">
   <script src="../assets/theme.js"></script>
-  <script src="./anime.js?v=20261023-3" defer></script>
+  <script src="./anime.js?v=20261023-4" defer></script>
   <style>
     .anime-tabs {
       display: flex;
@@ -141,6 +141,51 @@
       gap: 10px;
       border: 1px solid rgba(0,0,0,0.08);
     }
+    .anime-player-panel {
+      margin-bottom: 28px;
+      padding: 16px;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .anime-player-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .anime-player-header h2 { overflow-wrap: anywhere; }
+    .anime-video-frame {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      background: #000;
+    }
+    .anime-video-frame video {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #000;
+    }
+    .anime-player-status {
+      min-height: 1.5em;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .anime-player-status[data-error="true"] { color: var(--error); }
+    .anime-episode-list {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 4px 10px;
+    }
+    .anime-episode-list button { flex: 0 0 auto; }
+    .anime-episode-list button[aria-pressed="true"] {
+      background: var(--accent);
+      color: var(--text);
+    }
   </style>
 </head>
 <body data-page="anime">
@@ -168,6 +213,19 @@
         <span id="favCount">0</span> Anime nei Preferiti
       </div>
     </div>
+
+    <section id="animePlayerPanel" class="anime-player-panel" hidden aria-labelledby="animePlayerTitle">
+      <div class="anime-player-header">
+        <h2 id="animePlayerTitle">Player anime</h2>
+        <button id="closeAnimePlayer" type="button" aria-label="Chiudi player">Chiudi</button>
+      </div>
+      <div class="anime-video-frame">
+        <video id="authorizedVideoPlayer" controls playsinline preload="none"></video>
+      </div>
+      <p id="animePlayerStatus" class="anime-player-status" role="status" aria-live="polite">Seleziona un episodio.</p>
+      <div id="animeEpisodeList" class="anime-episode-list" aria-label="Episodi"></div>
+      <p class="anime-source-note">Il player riproduce solo sorgenti autorizzate fornite da un provider configurato.</p>
+    </section>
 
     <!-- Tab di Navigazione (Senza Tendenze) -->
     <div class="anime-tabs">
