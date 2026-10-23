@@ -8,7 +8,7 @@
   <title>Anime | Epstein Island</title>
   <link rel="stylesheet" href="../assets/site.css">
   <script src="../assets/theme.js"></script>
-  <script src="./anime.js?v=20261023-5" defer></script>
+  <script src="./anime.js?v=20261023-6" defer></script>
   <style>
     .anime-tabs {
       display: flex;
@@ -180,11 +180,33 @@
       gap: 8px;
       overflow-x: auto;
       padding: 4px 4px 10px;
+      scroll-behavior: smooth;
     }
     .anime-episode-list button { flex: 0 0 auto; }
     .anime-episode-list button[aria-pressed="true"] {
       background: var(--accent);
       color: var(--text);
+    }
+    /* Bottone "+ altri episodi": ancorato al bordo destro della riga
+       scorrevole, così resta sempre visibile senza scorrere fino in fondo. */
+    .episode-more-btn {
+      position: sticky;
+      right: 0;
+      z-index: 2;
+      flex: 0 0 auto;
+      margin-left: 6px;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      border: 1px dashed #0066cc;
+      border-radius: 4px;
+      background: var(--panel, #fff);
+      color: #0066cc;
+      cursor: pointer;
+      box-shadow: -10px 0 12px -8px rgba(0, 0, 0, 0.35);
+    }
+    .episode-more-btn:hover {
+      background: rgba(0, 102, 204, 0.12);
     }
   </style>
 </head>
