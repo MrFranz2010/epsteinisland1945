@@ -28,6 +28,91 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentUsernameSpan = document.getElementById('currentUsername');
   const changeUserBtn = document.getElementById('changeUserBtn');
   const favCountSpan = document.getElementById('favCount');
+  const animePlayerPanel = document.getElementById('animePlayerPanel');
+  const animePlayerTitle = document.getElementById('animePlayerTitle');
+  const animePlayerStatus = document.getElementById('animePlayerStatus');
+  const animeEpisodeList = document.getElementById('animeEpisodeList');
+  const authorizedVideoPlayer = document.getElementById('authorizedVideoPlayer');
+  const closeAnimePlayer = document.getElementById('closeAnimePlayer');
+  let authorizedStreamRequest = 0;
+
+  function setAnimePlayerStatus(message, isError = false) {
+    animePlayerStatus.textContent = message;
+    animePlayerStatus.dataset.error = String(isError);
+  }
+
+  async function playAuthorizedEpisode(anime, episode) {
+    const requestId = ++authorizedStreamRequest;
+    setAnimePlayerStatus(`Caricamento episodio ${episode}…`);
+    authorizedVideoPlayer.pause();
+    authorizedVideoPlayer.removeAttribute('src');
+
+    try {
+      const resolver = window.resolveAuthorizedAnimeStream;
+      if (typeof resolver !== 'function') {
+        throw new Error('Nessuna sorgente autorizzata configurata.');
+      }
+      const stream = await resolver({
+        animeId: String(anime.mal_id),
+        title: anime.title,
+        episode,
+      });
+      if (requestId !== authorizedStreamRequest) return;
+      if (!stream || typeof stream.url !== 'string') {
+        throw new Error('Il provider non ha restituito uno stream per questo episodio.');
+      }
+
+      const streamUrl = new URL(stream.url);
+      if (!['http:', 'https:'].includes(streamUrl.protocol)) {
+        throw new Error('Il provider ha restituito un URL non supportato.');
+      }
+      if (stream.type === 'hls' && !authorizedVideoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+        throw new Error('Questo browser non supporta HLS nativo; serve un player HLS autorizzato.');
+      }
+
+      authorizedVideoPlayer.src = streamUrl.href;
+      await authorizedVideoPlayer.play();
+      setAnimePlayerStatus(`Riproduzione episodio ${episode}.`);
+    } catch (error) {
+      if (requestId === authorizedStreamRequest) {
+        setAnimePlayerStatus(error.message || 'Impossibile riprodurre questo episodio.', true);
+      }
+    }
+  }
+
+  function openAuthorizedPlayer(anime) {
+    animePlayerPanel.hidden = false;
+    animePlayerTitle.textContent = anime.title || 'Anime';
+    animeEpisodeList.replaceChildren();
+    authorizedVideoPlayer.pause();
+    authorizedVideoPlayer.removeAttribute('src');
+    const episodeCount = Number(anime.episodes);
+    const totalEpisodes = Number.isInteger(episodeCount) && episodeCount > 0
+      ? Math.min(episodeCount, 50)
+      : 1;
+
+    for (let episode = 1; episode <= totalEpisodes; episode++) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = `Ep ${episode}`;
+      button.setAttribute('aria-pressed', String(episode === 1));
+      button.addEventListener('click', () => {
+        animeEpisodeList.querySelectorAll('button').forEach((item) => item.setAttribute('aria-pressed', 'false'));
+        button.setAttribute('aria-pressed', 'true');
+        playAuthorizedEpisode(anime, episode);
+      });
+      animeEpisodeList.append(button);
+    }
+    setAnimePlayerStatus('Seleziona un episodio; la riproduzione richiede un provider autorizzato configurato.');
+    animePlayerPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  closeAnimePlayer.addEventListener('click', () => {
+    authorizedStreamRequest++;
+    authorizedVideoPlayer.pause();
+    authorizedVideoPlayer.removeAttribute('src');
+    animePlayerPanel.hidden = true;
+  });
 
   const playerSection = document.getElementById('playerSection');
   const playerTitle = document.getElementById('playerTitle');
@@ -402,11 +487,17 @@ document.addEventListener('DOMContentLoaded', () => {
     availabilityLink.rel = 'noopener noreferrer';
     availabilityLink.textContent = 'Dove guardarlo';
 
+    const playerButton = document.createElement('button');
+    playerButton.className = 'watch-btn';
+    playerButton.type = 'button';
+    playerButton.textContent = 'Apri player';
+    playerButton.addEventListener('click', () => openPlayer(anime));
+
     const favBtn = document.createElement('button');
     favBtn.className = `fav-btn${isFav ? ' active-fav' : ''}`;
     favBtn.type = 'button';
     favBtn.textContent = isFav ? '⭐ Salvato' : '☆ Preferito';
-    actions.append(detailsLink, availabilityLink, favBtn);
+    actions.append(playerButton, detailsLink, availabilityLink, favBtn);
     info.append(title, metadata, actions);
     card.append(image, info);
 
