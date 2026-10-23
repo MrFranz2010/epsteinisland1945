@@ -1,10 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
   /* ============================================================
-     CONFIGURAZIONE CONSUMET
+     CONFIGURAZIONE PROVIDER & PROXY
      ============================================================ */
-  // Se api.consumet.org è in rate-limit, puoi sostituire l'URL qui sotto con un'altra istanza o mirror
   const CONSUMET_BASE = 'https://api.consumet.org';
-  const CONSUMET_PROVIDER = 'gogoanime'; // Provider predefinito (es. gogoanime, zoro, enime)
+  const CONSUMET_PROVIDER = 'gogoanime';
 
   const STREAM_TIMEOUT_MS = 20000;
   const EPISODES_PER_PAGE = 50;
@@ -40,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const sourceTitle = document.createElement('strong');
   sourceTitle.style.cssText = 'font-size: 0.9rem;';
-  sourceTitle.textContent = 'Fonti da Consumet';
+  sourceTitle.textContent = 'Fonti disponibili';
 
   const reloadSourcesBtn = document.createElement('button');
   reloadSourcesBtn.type = 'button';
@@ -117,18 +116,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ============================================================
-     CONSUMET API FETCH & STREAMING
+     FETCH STREAMING TRAMITE PROXY CORS
      ============================================================ */
 
   async function consumetFetch(path) {
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    const url = `${CONSUMET_BASE}/anime/${CONSUMET_PROVIDER}${cleanPath}`;
+    const targetUrl = `${CONSUMET_BASE}/anime/${CONSUMET_PROVIDER}${cleanPath}`;
+    
+    // Inoltro tramite proxy CORS per aggirare il blocco browser/GitHub Pages
+    const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
     
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
 
     try {
-      const res = await fetch(url, { signal: controller.signal });
+      const res = await fetch(proxiedUrl, { signal: controller.signal });
       if (!res.ok) throw new Error(`Consumet ha risposto ${res.status}`);
       return await res.json();
     } catch (error) {
@@ -142,23 +144,23 @@ document.addEventListener('DOMContentLoaded', () => {
   async function fetchStreams(anime, episodeNumber) {
     let animeId = anime.consumet_id;
     
-    // Se non abbiamo ancora l'ID di Consumet, effettuiamo una ricerca
+    // Se non abbiamo l'ID di Consumet, lo cerchiamo con il titolo dell'anime
     if (!animeId) {
       const searchRes = await consumetFetch(`/${encodeURIComponent(anime.title)}`);
       const results = searchRes.results || [];
-      if (results.length === 0) throw new Error('Anime non trovato su Consumet');
+      if (results.length === 0) throw new Error('Anime non trovato sul provider video');
       animeId = results[0].id;
       anime.consumet_id = animeId;
     }
 
-    // 1. Otteniamo le informazioni sugli episodi
+    // 1. Recupero informazioni episodi
     const info = await consumetFetch(`/info/${animeId}`);
     const episodes = info.episodes || [];
     
     const targetEp = episodes.find(ep => ep.number === episodeNumber) || episodes[episodeNumber - 1];
-    if (!targetEp) throw new Error(`Episodio ${episodeNumber} non trovato`);
+    if (!targetEp) throw new Error(`Episodio ${episodeNumber} non disponibile`);
 
-    // 2. Recuperiamo le sorgenti per l'episodio
+    // 2. Recupero sorgenti video
     const watchData = await consumetFetch(`/watch/${targetEp.id}`);
     const sources = watchData.sources || [];
 
@@ -265,15 +267,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     resetVideoPlayer();
 
-    setAnimePlayerStatus(`Cerco le fonti su Consumet per l'episodio ${episode}…`);
-    setSourceStatus('Fonti da Consumet');
+    setAnimePlayerStatus(`Cerco le fonti video per l'episodio ${episode}…`);
+    setSourceStatus('Ricerca fonti...');
 
     try {
       const { playable } = await fetchStreams(anime, episode);
       if (requestId !== authorizedStreamRequest) return;
 
       if (!playable.length) {
-        setSourceStatus('Consumet non ha trovato link video.', true);
+        setSourceStatus('Nessun link video trovato.', true);
         setAnimePlayerStatus('Nessun risultato disponibile per questo episodio.', true);
         return;
       }
@@ -467,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return card;
   }
 
-  /* ---------------- Ricerca con Consumet ---------------- */
+  /* ---------------- Ricerca Stabile tramite Kitsu API ---------------- */
   async function searchAnime(query) {
     const term = query.trim();
     if (!searchGrid) return;
@@ -482,32 +484,34 @@ document.addEventListener('DOMContentLoaded', () => {
     if (searchBtn) searchBtn.disabled = true;
 
     try {
-      const data = await consumetFetch(`/${encodeURIComponent(term)}`);
+      // Uso di Kitsu API (senza problemi di CORS o 500)
+      const res = await fetch(`https://kitsu.io/api/edge/anime?filter[text]=${encodeURIComponent(term)}&page[limit]=20`, {
+        headers: { Accept: 'application/vnd.api+json' }
+      });
+
+      if (!res.ok) throw new Error(`Kitsu ha risposto ${res.status}`);
+      const data = await res.json();
       searchGrid.replaceChildren();
-      
-      const results = data.results || [];
+
+      const results = data.data || [];
 
       if (results.length > 0) {
         results.forEach(item => {
-          let titleText = 'Titolo non disponibile';
-          if (typeof item.title === 'string') {
-            titleText = item.title;
-          } else if (item.title && typeof item.title === 'object') {
-            titleText = item.title.userPreferred || item.title.english || item.title.romaji || 'Titolo non disponibile';
-          }
+          const attr = item.attributes || {};
+          const titles = attr.titles || {};
 
           const anime = {
-            mal_id: item.id,
-            consumet_id: item.id,
-            title: titleText,
+            mal_id: `kitsu-${item.id}`,
+            consumet_id: null, // Si cercherà solo al Play
+            title: attr.canonicalTitle || titles.en || titles.en_jp || titles.ja_jp || 'Titolo non disponibile',
             images: { 
               jpg: { 
-                image_url: item.image || item.cover || '' 
+                image_url: attr.posterImage?.small || attr.posterImage?.medium || '' 
               } 
             },
-            episodes: item.totalEpisodes || '?'
+            episodes: attr.episodeCount || '?'
           };
-          
+
           searchGrid.appendChild(createAnimeCard(anime));
         });
       } else {
@@ -515,7 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (err) {
       console.error('Errore ricerca:', err);
-      searchGrid.textContent = `Ricerca non riuscita (${err.message}). Se l'API pubblica è in rate-limit, prova a cambiare CONSUMET_BASE.`;
+      searchGrid.textContent = `Ricerca non riuscita (${err.message}). Riprova tra poco.`;
     } finally {
       if (searchBtn) searchBtn.disabled = false;
     }
