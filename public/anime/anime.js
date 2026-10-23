@@ -443,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return card;
   }
 
-  /* ---------------- Ricerca Jikan ---------------- */
+  /* ---------------- Ricerca Kitsu ---------------- */
   let activeSearchController;
 
   async function searchAnime(query) {
@@ -468,14 +468,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 15000);
 
     try {
-      const url = `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(term)}&limit=24&sfw=true`;
-      const res = await fetch(url, { signal: controller.signal });
-      if (!res.ok) throw new Error(`Jikan ha risposto ${res.status}`);
+      const url = `https://kitsu.io/api/edge/anime?filter[text]=${encodeURIComponent(term)}&page[limit]=24`;
+      const res = await fetch(url, {
+        signal: controller.signal,
+        headers: { Accept: 'application/vnd.api+json' },
+      });
+      if (!res.ok) throw new Error(`Kitsu ha risposto ${res.status}`);
       const data = await res.json();
       if (controller.signal.aborted) return;
       searchGrid.replaceChildren();
       if (Array.isArray(data.data) && data.data.length > 0) {
-        data.data.forEach(anime => searchGrid.appendChild(createAnimeCard(anime)));
+        data.data.forEach(item => {
+          const attributes = item.attributes || {};
+          const titles = attributes.titles || {};
+          const anime = {
+            mal_id: `kitsu-${item.id}`,
+            title: attributes.canonicalTitle || titles.en || titles.en_jp || titles.ja_jp || 'Titolo non disponibile',
+            images: { jpg: { image_url: attributes.posterImage?.small || attributes.posterImage?.medium || '' } },
+            score: attributes.averageRating ? (Number(attributes.averageRating) / 10).toFixed(1) : null,
+            episodes: attributes.episodeCount,
+            url: attributes.slug ? `https://kitsu.io/anime/${attributes.slug}` : `https://kitsu.io/anime/${item.id}`,
+          };
+          searchGrid.appendChild(createAnimeCard(anime));
+        });
       } else {
         searchGrid.textContent = `Nessun anime trovato per "${term}".`;
       }
